@@ -82,13 +82,37 @@ class InterviewResponse(BaseModel):
 
 # ── Dashboard ────────────────────────────────────────────────────────────────
 
+
+class DashboardInterviewItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    application_id: int
+    interview_type: str
+    interview_date: Optional[datetime] = None
+    interviewer: Optional[str] = None
+    result: Optional[str] = None
+    notes: Optional[str] = None
+    created_at: datetime
+    company_name: str
+    position_title: str
+
+
+class DashboardActivityItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    application_id: int
+    position_title: str
+    company_name: str
+    current_stage: str
+    updated_at: datetime
+
+
 class DashboardStats(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     total_applications: int = 0
-    active_applications: int = 0
-    interviews_scheduled: int = 0
-    offers_received: int = 0
-    by_stage: dict[str, int] = Field(default_factory=dict)
-    recent_applications: list["ApplicationResponse"] = Field(default_factory=list)
-    upcoming_interviews: list["InterviewResponse"] = Field(default_factory=list)
+    stage_counts: dict[str, int] = Field(default_factory=dict)
+    upcoming_interviews: list[DashboardInterviewItem] = Field(default_factory=list)
+    this_week_interviews: list[DashboardInterviewItem] = Field(default_factory=list)
+    recent_activities: list[DashboardActivityItem] = Field(default_factory=list)
