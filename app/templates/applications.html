@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}投递管理 — 面试管理{% endblock %}
+
+{% block content %}
+<section>
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+    <h2 style="font-size: 20px; font-weight: 600;">投递管理</h2>
+    <button class="btn btn-primary" id="btn-add-application">添加投递</button>
+  </div>
+
+  <!-- Stage Filter -->
+  <div class="card" style="margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
+    <label for="filter-stage" style="font-weight: 500; white-space: nowrap;">阶段筛选</label>
+    <select class="form-input" id="filter-stage" style="max-width: 200px;">
+      <option value="">全部</option>
+      <option value="applied">投递</option>
+      <option value="resume_screening">简历筛选</option>
+      <option value="first_interview">一面</option>
+      <option value="second_interview">二面</option>
+      <option value="third_interview">三面</option>
+      <option value="hr_interview">HR面</option>
+      <option value="offer">Offer</option>
+      <option value="accepted">入职</option>
+      <option value="rejected">拒绝</option>
+    </select>
+  </div>
+
+  <div class="card" style="padding: 0; overflow-x: auto;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+      <thead>
+        <tr style="border-bottom: 1px solid var(--color-border); text-align: left; background-color: #F9FAFB;">
+          <th style="padding: 12px 16px; font-weight: 600;">职位</th>
+          <th style="padding: 12px 16px; font-weight: 600;">公司</th>
+          <th style="padding: 12px 16px; font-weight: 600;">阶段</th>
+          <th style="padding: 12px 16px; font-weight: 600;">投递日期</th>
+          <th style="padding: 12px 16px; font-weight: 600; width: 200px;">操作</th>
+        </tr>
+      </thead>
+      <tbody id="applications-tbody">
+        <tr id="applications-empty">
+          <td colspan="5" style="padding: 32px; text-align: center; color: var(--color-text-secondary);">暂无投递数据</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay" style="display: none;">
+  <div class="modal">
+    <h3 id="modal-title" style="font-size: 18px; font-weight: 600; margin-bottom: 20px;">添加投递</h3>
+    <form id="application-form">
+      <input type="hidden" id="application-id">
+      <div class="form-group">
+        <label class="form-label" for="app-company-id">公司 <span style="color: #EF4444;">*</span></label>
+        <select class="form-input" id="app-company-id" required>
+          <option value="">-- 请选择公司 --</option>
+        </select>
+        <span class="form-error" style="color: #EF4444; font-size: 12px; display: none;">请选择公司</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="app-position-title">职位名称 <span style="color: #EF4444;">*</span></label>
+        <input class="form-input" type="text" id="app-position-title" required>
+        <span class="form-error" style="color: #EF4444; font-size: 12px; display: none;">请输入职位名称</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="app-applied-date">投递日期 <span style="color: #EF4444;">*</span></label>
+        <input class="form-input" type="date" id="app-applied-date" required>
+        <span class="form-error" style="color: #EF4444; font-size: 12px; display: none;">请选择投递日期</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="app-salary-range">薪资范围</label>
+        <input class="form-input" type="text" id="app-salary-range" placeholder="如 15k-25k">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="app-job-link">职位链接</label>
+        <input class="form-input" type="url" id="app-job-link" placeholder="https://">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="app-jd-description">JD 描述</label>
+        <textarea class="form-input" id="app-jd-description" rows="3"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="app-notes">备注</label>
+        <textarea class="form-input" id="app-notes" rows="3"></textarea>
+      </div>
+      <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px;">
+        <button type="button" class="btn" id="btn-cancel-application">取消</button>
+        <button type="submit" class="btn btn-primary">保存</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', path='/js/applications.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}公司管理 — 面试管理{% endblock %}
+
+{% block content %}
+<section>
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+    <h2 style="font-size: 20px; font-weight: 600;">公司管理</h2>
+    <button class="btn btn-primary" id="btn-add-company">添加公司</button>
+  </div>
+
+  <div class="card" style="padding: 0; overflow-x: auto;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+      <thead>
+        <tr style="border-bottom: 1px solid var(--color-border); text-align: left; background-color: #F9FAFB;">
+          <th style="padding: 12px 16px; font-weight: 600;">名称</th>
+          <th style="padding: 12px 16px; font-weight: 600;">城市</th>
+          <th style="padding: 12px 16px; font-weight: 600;">行业</th>
+          <th style="padding: 12px 16px; font-weight: 600;">官网</th>
+          <th style="padding: 12px 16px; font-weight: 600;">备注</th>
+          <th style="padding: 12px 16px; font-weight: 600; width: 140px;">操作</th>
+        </tr>
+      </thead>
+      <tbody id="companies-tbody">
+        <tr id="companies-empty">
+          <td colspan="6" style="padding: 32px; text-align: center; color: var(--color-text-secondary);">暂无公司数据</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay" style="display: none;">
+  <div class="modal">
+    <h3 id="modal-title" style="font-size: 18px; font-weight: 600; margin-bottom: 20px;">添加公司</h3>
+    <form id="company-form">
+      <input type="hidden" id="company-id">
+      <div class="form-group">
+        <label class="form-label" for="company-name">名称 <span style="color: #EF4444;">*</span></label>
+        <input class="form-input" type="text" id="company-name" required>
+        <span class="form-error" style="color: #EF4444; font-size: 12px; display: none;">请输入公司名称</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="company-city">城市</label>
+        <input class="form-input" type="text" id="company-city">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="company-industry">行业</label>
+        <input class="form-input" type="text" id="company-industry">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="company-website">官网</label>
+        <input class="form-input" type="url" id="company-website" placeholder="https://">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="company-notes">备注</label>
+        <textarea class="form-input" id="company-notes" rows="3"></textarea>
+      </div>
+      <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px;">
+        <button type="button" class="btn" id="btn-cancel-company">取消</button>
+        <button type="submit" class="btn btn-primary">保存</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', path='/js/companies.js') }}"></script>
+{% endblock %}
