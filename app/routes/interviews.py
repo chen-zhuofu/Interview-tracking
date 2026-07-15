@@ -2,12 +2,16 @@ from datetime import datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.models import Application, Interview
-from app.schemas import InterviewCreate, InterviewResponse
+from app.schemas import (
+    InterviewCreate,
+    InterviewDetailResponse,
+    InterviewResponse,
+    InterviewUpdate,
+)
 
 router = APIRouter()
 
@@ -21,15 +25,6 @@ def _validate_interview_type(itype: str) -> None:
             detail=f"Invalid interview_type: '{itype}'. "
             f"Must be one of: {', '.join(sorted(VALID_INTERVIEW_TYPES))}",
         )
-
-
-class InterviewUpdate(BaseModel):
-    application_id: Optional[int] = None
-    interview_type: Optional[str] = None
-    scheduled_time: Optional[datetime] = None
-    interviewer: Optional[str] = None
-    result: Optional[str] = None
-    notes: Optional[str] = None
 
 
 @router.get("/", response_model=List[InterviewResponse])
@@ -67,7 +62,7 @@ def create_interview(data: InterviewCreate, db: Session = Depends(get_db)):
     return interview
 
 
-@router.get("/{interview_id}")
+@router.get("/{interview_id}", response_model=InterviewDetailResponse)
 def get_interview(interview_id: int, db: Session = Depends(get_db)):
     interview = (
         db.query(Interview)
@@ -77,26 +72,10 @@ def get_interview(interview_id: int, db: Session = Depends(get_db)):
     )
     if not interview:
         raise HTTPException(status_code=404, detail="Interview not found")
-
-    result = InterviewResponse.model_validate(interview).model_dump()
-    app = interview.application
-    if app:
-        result["application"] = {
-            "id": app.id,
-            "company_id": app.company_id,
-            "position": app.position,
-            "status": app.status,
-        }
-        if app.company:
-            result["application"]["company"] = {
-                "id": app.company.id,
-                "name": app.company.name,
-            }
-
-    return result
+    return interview
 
 
-@router.put("/{interview_id}", response_model=InterviewResponse)
+@router.put("/{interview_id}", response_model=InterviewDetailResponse)
 def update_interview(
     interview_id: int, data: InterviewUpdate, db: Session = Depends(get_db)
 ):
@@ -115,7 +94,13 @@ def update_interview(
         setattr(interview, key, value)
 
     db.commit()
-    db.refresh(interview)
+
+    interview = (
+        db.query(Interview)
+        .options(joinedload(Interview.application).joinedload(Application.company))
+        .filter(Interview.id == interview_id)
+        .first()
+    )
     return interview
 
 
