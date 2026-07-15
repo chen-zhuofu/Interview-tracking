@@ -125,7 +125,7 @@ def update_application(app_id: int, data: AppUpdate, db: Session = Depends(get_d
     if not app:
         raise HTTPException(status_code=404, detail="Application not found")
 
-    update_data = data.model_dump(exclude_unset=True)
+    update_data = data.model_dump()
     if "position_title" in update_data:
         app.position = update_data.pop("position_title")
     for key, value in update_data.items():
