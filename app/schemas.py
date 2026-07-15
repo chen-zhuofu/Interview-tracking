@@ -59,9 +59,22 @@ class StageUpdate(BaseModel):
 # ── Interview ────────────────────────────────────────────────────────────────
 
 class InterviewCreate(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     application_id: int
     interview_type: str
-    interview_date: Optional[datetime] = None
+    scheduled_time: datetime = Field(..., alias="interview_date")
+    interviewer: Optional[str] = None
+    result: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class InterviewUpdate(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    application_id: Optional[int] = None
+    interview_type: Optional[str] = None
+    scheduled_time: Optional[datetime] = Field(None, alias="interview_date")
     interviewer: Optional[str] = None
     result: Optional[str] = None
     notes: Optional[str] = None
@@ -78,6 +91,37 @@ class InterviewResponse(BaseModel):
     result: Optional[str] = None
     notes: Optional[str] = None
     created_at: datetime
+
+
+class InterviewDetailCompany(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+
+
+class InterviewDetailApplication(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    company_id: int
+    position: str
+    status: str
+    company: Optional[InterviewDetailCompany] = None
+
+
+class InterviewDetailResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    application_id: int
+    interview_type: str
+    interview_date: Optional[datetime] = None
+    interviewer: Optional[str] = None
+    result: Optional[str] = None
+    notes: Optional[str] = None
+    created_at: datetime
+    application: Optional[InterviewDetailApplication] = None
 
 
 # ── Dashboard ────────────────────────────────────────────────────────────────

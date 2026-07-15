@@ -173,7 +173,7 @@
     return fetch(API_BASE + '/' + id + '/stage', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStage }),
+      body: JSON.stringify({ current_stage: newStage }),
     }).then(function (res) {
       if (!res.ok) throw new Error('Failed to update stage');
       return res.json();
@@ -193,7 +193,7 @@
     emptyRow.style.display = 'none';
 
     apps.forEach(function (a) {
-      var stageKey = a.status || 'applied';
+      var stageKey = a.current_stage || 'applied';
       var stageLabel = STAGE_LABELS[stageKey] || stageKey;
       var companyName = getCompanyName(a.company_id) || '—';
 
@@ -204,7 +204,7 @@
       var tr = document.createElement('tr');
       tr.style.borderBottom = '1px solid var(--color-border)';
       tr.innerHTML =
-        '<td style="padding: 12px 16px; font-weight: 500;">' + escapeHtml(a.position || '—') + '</td>' +
+        '<td style="padding: 12px 16px; font-weight: 500;">' + escapeHtml(a.position_title || '—') + '</td>' +
         '<td style="padding: 12px 16px;">' + escapeHtml(companyName) + '</td>' +
         '<td style="padding: 12px 16px;"><span class="badge badge-' + stageKey + '">' + stageLabel + '</span></td>' +
         '<td style="padding: 12px 16px;">' + formatDate(a.applied_date) + '</td>' +
@@ -269,7 +269,7 @@
     function fillAndOpen() {
       idInput.value = app.id;
       companySelect.value = app.company_id || '';
-      positionInput.value = app.position || '';
+      positionInput.value = app.position_title || '';
       appliedDate.value = app.applied_date ? app.applied_date.toString().substring(0, 10) : '';
       jobDescUrlInput.value = app.job_description_url || '';
       notesInput.value = app.notes || '';
@@ -326,7 +326,7 @@
 
     var payload = {
       company_id: parseInt(companyId, 10),
-      position: position,
+      position_title: position,
       job_description_url: jobDescUrlInput.value.trim() || null,
       applied_date: appliedDate.value || null,
       notes: notesInput.value.trim() || null,

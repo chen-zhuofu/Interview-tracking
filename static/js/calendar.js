@@ -256,7 +256,7 @@
   function renderCard(iv) {
     const app = findApplication(iv.application_id);
     const companyName = app ? (app.company_name || (app.company && app.company.name) || '未知公司') : '未知公司';
-    const position = app ? app.position : '未知职位';
+    const position = app ? app.position_title : '未知职位';
     const typeLabel = TYPE_LABELS[iv.interview_type] || iv.interview_type || '未知';
     const timeStr = formatDateTime(iv.interview_date);
     const interviewer = iv.interviewer || '—';
@@ -393,7 +393,7 @@
     applicationSelect.innerHTML = '<option value="">请选择投递</option>';
     for (const app of applications) {
       const companyName = app.company_name || (app.company && app.company.name) || '未知公司';
-      const label = companyName + ' — ' + app.position;
+      const label = companyName + ' — ' + app.position_title;
       const option = document.createElement('option');
       option.value = app.id;
       option.textContent = label;

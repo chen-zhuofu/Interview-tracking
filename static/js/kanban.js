@@ -43,7 +43,7 @@ function groupByStage(apps) {
     groups[stage] = [];
   }
   for (const app of apps) {
-    const stage = app.status || 'applied';
+    const stage = app.current_stage || 'applied';
     if (groups[stage]) {
       groups[stage].push(app);
     }
@@ -63,7 +63,7 @@ function renderCard(app) {
 
   const position = document.createElement('div');
   position.className = 'kanban-card-position';
-  position.textContent = app.position;
+  position.textContent = app.position_title;
 
   const footer = document.createElement('div');
   footer.className = 'kanban-card-footer';
@@ -73,7 +73,7 @@ function renderCard(app) {
   date.textContent = formatDate(app.applied_date);
 
   const badge = document.createElement('span');
-  badge.className = 'badge badge-' + (app.status || 'applied');
+  badge.className = 'badge badge-' + (app.current_stage || 'applied');
   const interviewCount = app.interview_count || (app.interviews && app.interviews.length) || 0;
   badge.textContent = interviewCount + ' 面试';
 
@@ -190,7 +190,7 @@ function updateStage(appId, newStage, callback) {
       // Update local state
       const app = applications.find(function (a) { return a.id === appId; });
       if (app) {
-        app.status = newStage;
+        app.current_stage = newStage;
       }
       callback(null);
     })
@@ -234,8 +234,8 @@ function showDetail(app) {
   content.innerHTML =
     '<div class="detail-section"><h4>投递信息</h4>' +
     '<div class="detail-row"><span class="detail-label">公司</span><span class="detail-value">' + escapeHtml(companyName(app)) + '</span></div>' +
-    '<div class="detail-row"><span class="detail-label">职位</span><span class="detail-value">' + escapeHtml(app.position) + '</span></div>' +
-    '<div class="detail-row"><span class="detail-label">阶段</span><span class="detail-value"><span class="badge badge-' + (app.status || 'applied') + '">' + escapeHtml(STAGE_LABELS[app.status] || app.status) + '</span></span></div>' +
+    '<div class="detail-row"><span class="detail-label">职位</span><span class="detail-value">' + escapeHtml(app.position_title) + '</span></div>' +
+    '<div class="detail-row"><span class="detail-label">阶段</span><span class="detail-value"><span class="badge badge-' + (app.current_stage || 'applied') + '">' + escapeHtml(STAGE_LABELS[app.current_stage] || app.current_stage) + '</span></span></div>' +
     (app.applied_date ? '<div class="detail-row"><span class="detail-label">投递日期</span><span class="detail-value">' + escapeHtml(formatDate(app.applied_date)) + '</span></div>' : '') +
     (app.job_description_url ? '<div class="detail-row"><span class="detail-label">JD链接</span><span class="detail-value"><a href="' + escapeHtml(app.job_description_url) + '" target="_blank">查看</a></span></div>' : '') +
     '<div class="detail-row"><span class="detail-label">面试次数</span><span class="detail-value">' + interviewCount + '</span></div>' +
