@@ -6,7 +6,10 @@
 <section>
   <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
     <h2 style="font-size: 20px; font-weight: 600;">投递管理</h2>
-    <button class="btn btn-primary" id="btn-add-application">添加投递</button>
+    <div style="display: flex; gap: 8px;">
+      <a href="/api/export/applications" class="btn">导出CSV</a>
+      <button class="btn btn-primary" id="btn-add-application">添加投递</button>
+    </div>
   </div>
 
   <!-- Stage Filter -->

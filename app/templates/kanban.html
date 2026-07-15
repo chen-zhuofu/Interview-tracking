@@ -181,6 +181,10 @@
 {% endblock %}
 
 {% block content %}
+<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+  <h2 style="font-size: 20px; font-weight: 600;">看板视图</h2>
+  <a href="/api/export/applications" class="btn">导出CSV</a>
+</div>
 <div class="kanban-board" id="kanban-board">
   {% set stages = [
     ('applied', '投递'),
