@@ -101,7 +101,7 @@
       companySelect.remove(1);
     }
 
-    fetch(COMPANIES_API)
+    return fetch(COMPANIES_API)
       .then(function (res) {
         if (!res.ok) throw new Error('Failed to load companies');
         return res.json();
@@ -372,5 +372,5 @@
   });
 
   // ── Init ────────────────────────────────────────────────────
-  refreshTable();
+  loadCompanyOptions().then(function () { refreshTable(); });
 })();
