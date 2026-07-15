@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}面试管理{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-brand">面试管理</div>
+      <ul class="sidebar-nav">
+        {% set nav_items = [
+          ('dashboard', '仪表盘'),
+          ('kanban', '看板视图'),
+          ('applications', '投递管理'),
+          ('companies', '公司管理'),
+          ('calendar', '面试日历'),
+        ] %}
+        {% for route, label in nav_items %}
+          <li>
+            <a href="{{ url_for(route) }}"
+               class="{% if request.url.path == url_for(route) %}active{% endif %}">
+              {{ label }}
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    </aside>
+    <main class="main-content">
+      <div class="main-content-inner">
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+  </div>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
