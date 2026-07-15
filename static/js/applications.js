@@ -20,7 +20,7 @@
     rejected: '拒绝',
   };
 
-  // Stage order for quick-switch (exclude rejected for "next" logic)
+  // Stage order for quick-switch buttons
   var STAGE_ORDER = [
     'applied',
     'resume_screening',
@@ -34,22 +34,20 @@
   ];
 
   // ── DOM refs ──────────────────────────────────────────────
-  var tbody          = document.getElementById('applications-tbody');
-  var emptyRow       = document.getElementById('applications-empty');
-  var btnAdd         = document.getElementById('btn-add-application');
-  var modalOverlay   = document.getElementById('modal-overlay');
-  var modalTitle     = document.getElementById('modal-title');
-  var form           = document.getElementById('application-form');
-  var idInput        = document.getElementById('application-id');
-  var companySelect  = document.getElementById('app-company-id');
-  var posTitleInput  = document.getElementById('app-position-title');
-  var appliedDate    = document.getElementById('app-applied-date');
-  var salaryInput    = document.getElementById('app-salary-range');
-  var jobLinkInput   = document.getElementById('app-job-link');
-  var jdDescInput    = document.getElementById('app-jd-description');
-  var notesInput     = document.getElementById('app-notes');
-  var btnCancel      = document.getElementById('btn-cancel-application');
-  var filterSelect   = document.getElementById('filter-stage');
+  var tbody            = document.getElementById('applications-tbody');
+  var emptyRow         = document.getElementById('applications-empty');
+  var btnAdd           = document.getElementById('btn-add-application');
+  var modalOverlay     = document.getElementById('modal-overlay');
+  var modalTitle       = document.getElementById('modal-title');
+  var form             = document.getElementById('application-form');
+  var idInput          = document.getElementById('application-id');
+  var companySelect    = document.getElementById('app-company-id');
+  var positionInput    = document.getElementById('app-position');
+  var appliedDate      = document.getElementById('app-applied-date');
+  var jobDescUrlInput  = document.getElementById('app-job-description-url');
+  var notesInput       = document.getElementById('app-notes');
+  var btnCancel        = document.getElementById('btn-cancel-application');
+  var filterSelect     = document.getElementById('filter-stage');
 
   // ── Helpers ────────────────────────────────────────────────
   function escapeHtml(str) {
@@ -62,7 +60,6 @@
   function showModal(isEdit) {
     modalTitle.textContent = isEdit ? '编辑投递' : '添加投递';
     modalOverlay.style.display = 'flex';
-    // Populate company dropdown if not yet loaded
     if (companySelect.options.length <= 1) {
       loadCompanyOptions();
     }
@@ -81,7 +78,6 @@
 
   function formatDate(dateStr) {
     if (!dateStr) return '—';
-    // dateStr may be 'YYYY-MM-DD' or ISO
     var d = new Date(dateStr);
     if (isNaN(d.getTime())) return escapeHtml(dateStr);
     var y = d.getFullYear();
@@ -90,9 +86,17 @@
     return y + '-' + m + '-' + day;
   }
 
+  // Look up company name from cache (populated by companies.js)
+  function getCompanyName(companyId) {
+    var cache = window.__companiesCache || [];
+    for (var i = 0; i < cache.length; i++) {
+      if (cache[i].id === companyId) return cache[i].name;
+    }
+    return null;
+  }
+
   // ── Load company options ───────────────────────────────────
   function loadCompanyOptions() {
-    // Remove existing options except the placeholder
     while (companySelect.options.length > 1) {
       companySelect.remove(1);
     }
@@ -103,6 +107,7 @@
         return res.json();
       })
       .then(function (companies) {
+        window.__companiesCache = companies;
         companies.forEach(function (c) {
           var opt = document.createElement('option');
           opt.value = c.id;
@@ -168,7 +173,7 @@
     return fetch(API_BASE + '/' + id + '/stage', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ current_stage: newStage }),
+      body: JSON.stringify({ status: newStage }),
     }).then(function (res) {
       if (!res.ok) throw new Error('Failed to update stage');
       return res.json();
@@ -188,11 +193,10 @@
     emptyRow.style.display = 'none';
 
     apps.forEach(function (a) {
-      var stageKey = a.current_stage || 'applied';
+      var stageKey = a.status || 'applied';
       var stageLabel = STAGE_LABELS[stageKey] || stageKey;
-      var companyName = (a.company && a.company.name) ? a.company.name : '—';
+      var companyName = getCompanyName(a.company_id) || '—';
 
-      // Determine next/prev stages for quick-switch buttons
       var stageIdx = STAGE_ORDER.indexOf(stageKey);
       var canPrev = stageIdx > 0;
       var canNext = stageIdx >= 0 && stageIdx < STAGE_ORDER.length - 1;
@@ -200,7 +204,7 @@
       var tr = document.createElement('tr');
       tr.style.borderBottom = '1px solid var(--color-border)';
       tr.innerHTML =
-        '<td style="padding: 12px 16px; font-weight: 500;">' + escapeHtml(a.position_title || '—') + '</td>' +
+        '<td style="padding: 12px 16px; font-weight: 500;">' + escapeHtml(a.position || '—') + '</td>' +
         '<td style="padding: 12px 16px;">' + escapeHtml(companyName) + '</td>' +
         '<td style="padding: 12px 16px;"><span class="badge badge-' + stageKey + '">' + stageLabel + '</span></td>' +
         '<td style="padding: 12px 16px;">' + formatDate(a.applied_date) + '</td>' +
@@ -262,15 +266,12 @@
   }
 
   function openEditModal(app) {
-    // Ensure company dropdown is populated
     function fillAndOpen() {
       idInput.value = app.id;
       companySelect.value = app.company_id || '';
-      posTitleInput.value = app.position_title || '';
-      appliedDate.value = app.applied_date ? app.applied_date.substring(0, 10) : '';
-      salaryInput.value = app.salary_range || '';
-      jobLinkInput.value = app.job_link || '';
-      jdDescInput.value = app.jd_description || '';
+      positionInput.value = app.position || '';
+      appliedDate.value = app.applied_date ? app.applied_date.toString().substring(0, 10) : '';
+      jobDescUrlInput.value = app.job_description_url || '';
       notesInput.value = app.notes || '';
       clearErrors();
       showModal(true);
@@ -278,8 +279,17 @@
 
     if (companySelect.options.length <= 1) {
       loadCompanyOptions();
-      // Give a moment for options to load, then fill values
-      setTimeout(fillAndOpen, 300);
+      // Wait for options to load, then fill values
+      var start = Date.now();
+      var timer = setInterval(function () {
+        if (companySelect.options.length > 1) {
+          clearInterval(timer);
+          fillAndOpen();
+        } else if (Date.now() - start > 5000) {
+          clearInterval(timer);
+          fillAndOpen();
+        }
+      }, 100);
     } else {
       fillAndOpen();
     }
@@ -294,19 +304,21 @@
 
     var companyId = companySelect.value;
     if (!companyId) {
-      companySelect.closest('.form-group').querySelector('.form-error').style.display = '';
+      var errEl = companySelect.closest('.form-group');
+      if (errEl) {
+        var span = errEl.querySelector('.form-error');
+        if (span) span.style.display = '';
+      }
       hasError = true;
     }
 
-    var posTitle = posTitleInput.value.trim();
-    if (!posTitle) {
-      posTitleInput.closest('.form-group').querySelector('.form-error').style.display = '';
-      hasError = true;
-    }
-
-    var dateVal = appliedDate.value;
-    if (!dateVal) {
-      appliedDate.closest('.form-group').querySelector('.form-error').style.display = '';
+    var position = positionInput.value.trim();
+    if (!position) {
+      var errEl = positionInput.closest('.form-group');
+      if (errEl) {
+        var span = errEl.querySelector('.form-error');
+        if (span) span.style.display = '';
+      }
       hasError = true;
     }
 
@@ -314,14 +326,11 @@
 
     var payload = {
       company_id: parseInt(companyId, 10),
-      position_title: posTitle,
-      applied_date: dateVal,
-      salary_range: salaryInput.value.trim() || null,
-      job_link: jobLinkInput.value.trim() || null,
-      jd_description: jdDescInput.value.trim() || null,
+      position: position,
+      job_description_url: jobDescUrlInput.value.trim() || null,
+      applied_date: appliedDate.value || null,
       notes: notesInput.value.trim() || null,
     };
-    // Remove null fields
     Object.keys(payload).forEach(function (k) {
       if (payload[k] === null) delete payload[k];
     });
