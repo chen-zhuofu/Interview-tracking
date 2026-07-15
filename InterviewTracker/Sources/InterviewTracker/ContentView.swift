@@ -34,25 +34,15 @@ struct ContentView: View {
         } detail: {
             switch selectedTab {
             case .dashboard:
-                Text("仪表盘")
-                    .font(.largeTitle)
-                    .foregroundStyle(.secondary)
+                DashboardView()
             case .kanban:
-                Text("看板视图")
-                    .font(.largeTitle)
-                    .foregroundStyle(.secondary)
+                KanbanView()
             case .applications:
-                Text("投递管理")
-                    .font(.largeTitle)
-                    .foregroundStyle(.secondary)
+                ApplicationListView()
             case .companies:
-                Text("公司管理")
-                    .font(.largeTitle)
-                    .foregroundStyle(.secondary)
+                CompanyListView()
             case .calendar:
-                Text("面试日历")
-                    .font(.largeTitle)
-                    .foregroundStyle(.secondary)
+                CalendarView()
             }
         }
     }

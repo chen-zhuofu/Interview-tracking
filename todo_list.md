@@ -59,7 +59,7 @@ Task 9 (最终集成)
   - **Verify**: macOS 上 `cd InterviewTracker && swift build` 成功；`swift run` 显示三栏布局窗口
   - **Out of scope**: 不实现任何功能视图的具体业务逻辑（占位即可）；不生成 .app bundle
 
-- [ ] Task 2: 公司管理视图 — 列表 + 表单 CRUD (deps: task 1)
+- [x] Task 2: 公司管理视图 — 列表 + 表单 CRUD (deps: task 1)
   - **Objective**: 实现完整的公司 CRUD 界面——列表、添加（Sheet 表单）、编辑、删除确认。
   - **Detailed requirements**:
     - `CompanyListView.swift`: `@Query` 查询 Company（按 createdAt 降序）。List 显示每行：name(粗体)、website、contactPerson、applicationCount（`company.applications?.count ?? 0`）。每行有编辑/删除按钮。顶部 toolbar "添加公司" 按钮。删除使用 `.confirmationDialog` 确认。列表为空时显示 "暂无公司" 空状态。
@@ -75,7 +75,7 @@ Task 9 (最终集成)
   - **Verify**: 手动运行应用，在 ContentView 中临时替换占位为 CompanyListView → 测试 CRUD
   - **Out of scope**: 搜索/排序切换、公司详情页
 
-- [ ] Task 3: 投递管理视图 + 阶段流转 (deps: task 1)
+- [x] Task 3: 投递管理视图 + 阶段流转 (deps: task 1)
   - **Objective**: 投递 CRUD 列表、添加/编辑表单、阶段筛选、快速前后流转按钮。
   - **Detailed requirements**:
     - `ApplicationListView.swift`: `@Query` 查询 Application（SortDescriptor 按 lastUpdated 降序）。顶部 Picker 阶段筛选（"全部" + 9 阶段中文）。List 显示：position、company.name、status（彩色 badge，使用 STAGE_LABELS 映射）、appliedDate。每行：◀▶ 阶段流转按钮（边界阶段禁用对应方向）、编辑、删除。toolbar "添加投递" 按钮。
@@ -96,7 +96,7 @@ Task 9 (最终集成)
   - **Verify**: 在 ContentView 中集成验证 CRUD + 阶段流转
   - **Out of scope**: 批量操作、投递详情页
 
-- [ ] Task 4: 面试事件管理视图 (deps: task 1)
+- [x] Task 4: 面试事件管理视图 (deps: task 1)
   - **Objective**: 面试事件 CRUD 列表 + 添加/编辑 Sheet 表单，关联投递。
   - **Detailed requirements**:
     - `InterviewListView.swift`: `@Query` 查询 Interview（按 interviewDate 降序）。List 每行显示：interviewType(中文标签)、关联投递的 companyName + position、interviewDate(格式化)、interviewer、result(中文 badge)。每行编辑/删除按钮。toolbar "添加面试" 按钮。删除 confirmationDialog。
@@ -113,7 +113,7 @@ Task 9 (最终集成)
   - **Verify**: 集成验证 CRUD 流程
   - **Out of scope**: 面试类型自定义
 
-- [ ] Task 5: 看板视图 + 原生拖拽流转 (deps: task 1)
+- [x] Task 5: 看板视图 + 原生拖拽流转 (deps: task 1)
   - **Objective**: 9 列看板，投递卡片按阶段分列展示，支持原生 Drag & Drop 改变阶段，点击查看详情。
   - **Detailed requirements**:
     - `KanbanView.swift`: 水平 ScrollView（`ScrollView(.horizontal)`），内含 HStack 排列 9 个 `KanbanColumnView`。每列头部：中文阶段名 + 卡片数量 badge。
@@ -132,7 +132,7 @@ Task 9 (最终集成)
   - **Verify**: 集成到看板视图 → 拖拽 → 关闭重开验证持久化
   - **Out of scope**: 跨列排序、列内排序、快捷键拖拽、多卡片同时拖拽
 
-- [ ] Task 6: 仪表盘视图 (deps: task 1)
+- [x] Task 6: 仪表盘视图 (deps: task 1)
   - **Objective**: 仪表盘：统计卡片、阶段分布条形图、本周面试列表、近期活动。
   - **Detailed requirements**:
     - `DashboardView.swift`: `@Query` 查询 Application 和 Interview，在 `computed` 属性中计算统计。
@@ -155,7 +155,7 @@ Task 9 (最终集成)
   - **Verify**: 集成到仪表盘 → 对比原始数据验证
   - **Out of scope**: Swift Charts 框架（用原生 Rectangle），点击下钻
 
-- [ ] Task 7: 面试日历视图 (deps: task 1)
+- [x] Task 7: 面试日历视图 (deps: task 1)
   - **Objective**: 日历视图：近期面试按日期分组（今天/明天/本周/之后），历史面试独立区域。
   - **Detailed requirements**:
     - `CalendarView.swift`: `@Query` 查询 Interview（关联 Application > Company 数据）。
@@ -175,7 +175,7 @@ Task 9 (最终集成)
   - **Verify**: 集成验证分组逻辑
   - **Out of scope**: 月历网格视图、日历内编辑/删除
 
-- [ ] Task 8: CSV 导出功能 (deps: tasks 1, 3)
+- [x] Task 8: CSV 导出功能 (deps: tasks 1, 3)
   - **Objective**: CSV 导出：UTF-8 BOM 中文 CSV 文件，NSSavePanel 保存对话框。
   - **Detailed requirements**:
     - `CSVExporter.swift`: 工具结构体，静态方法 `exportApplications(_ applications: [Application])`。
@@ -195,7 +195,7 @@ Task 9 (最终集成)
   - **Verify**: 运行应用 → 投递管理 → 导出 → 用 Excel 验证
   - **Out of scope**: JSON/PDF 导出、导入功能
 
-- [ ] Task 9: 最终集成 — 导航接线 + 端到端验证 (deps: tasks 1, 2, 3, 4, 5, 6, 7, 8)
+- [x] Task 9: 最终集成 — 导航接线 + 端到端验证 (deps: tasks 1, 2, 3, 4, 5, 6, 7, 8)
   - **Objective**: 将所有功能视图接入 ContentView 导航系统，端到端验证整个应用。
   - **Detailed requirements**:
     - 修改 `ContentView.swift`：
