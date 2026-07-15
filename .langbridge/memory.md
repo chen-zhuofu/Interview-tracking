@@ -1,1 +1,2 @@
-- [project] interview-tracker-deliverable-form.md: 面试管理工具最终必须交付为可双击启动的 Mac .app，而不是浏览器应用
+- [project] interview-tracker-deliverable-form.md: 面试管理工具最终必须交付为原生 macOS SwiftUI .app，而不是浏览器应用
+- [project] interview-tracker-swiftui-architecture.md: SwiftUI 面试管理工具的技术架构：SwiftData + NavigationSplitView + 原生 Drag & Drop

@@ -10,11 +10,8 @@ final class Interview {
     var result: String?
     var notes: String?
     var createdAt: Date
-    /// Google Calendar event id when synced; nil if not on calendar.
-    var googleEventId: String?
-    /// Optional chip label override for the timeline.
-    var displayTitle: String?
 
+    @Relationship(inverse: \Application.interviews)
     var application: Application?
 
     init(
@@ -23,9 +20,7 @@ final class Interview {
         interviewDate: Date? = nil,
         interviewer: String? = nil,
         result: String? = nil,
-        notes: String? = nil,
-        googleEventId: String? = nil,
-        displayTitle: String? = nil
+        notes: String? = nil
     ) {
         self.id = UUID()
         self.interviewType = interviewType
@@ -35,7 +30,5 @@ final class Interview {
         self.result = result
         self.notes = notes
         self.createdAt = Date()
-        self.googleEventId = googleEventId
-        self.displayTitle = displayTitle
     }
 }
