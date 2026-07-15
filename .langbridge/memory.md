@@ -1,2 +1,3 @@
-- [project] interview-tracker-deliverable-form.md: 面试管理工具最终必须交付为原生 macOS SwiftUI .app，而不是浏览器应用
-- [project] interview-tracker-swiftui-architecture.md: SwiftUI 面试管理工具的技术架构：SwiftData + NavigationSplitView + 原生 Drag & Drop
+- [project] interview-tracker-deliverable-form.md: 面试管理工具当前交付为 Web 版（FastAPI），SwiftUI 版因编译 bug 搁置
+- [project] interview-tracker-swiftui-architecture.md: SwiftUI 版本的架构参考（已搁置，Web 版为当前交付）
+- [project] interview-tracker-web-architecture.md: 当前交付的 Web 版架构：FastAPI + Jinja2 + SQLite + SortableJS

@@ -1,12 +1,16 @@
 ---
 name: "interview-tracker-deliverable-form"
-description: "面试管理工具最终必须交付为原生 macOS SwiftUI .app，而不是浏览器应用"
+description: "面试管理工具当前交付为 Web 版（FastAPI），SwiftUI 版因编译 bug 搁置"
 type: project
 ---
-面试管理工具的目标交付形态是原生 macOS SwiftUI 应用（`.app`，独立窗口、Dock 图标）。浏览器中的本地 Web 应用不算完成最终需求。
+面试管理工具经历了三次迭代：
 
-**Why:** 需求确认阶段曾错误地把"Mac 上能打开的 App"理解为自动打开浏览器（FastAPI + Jinja2），导致功能完成但交付形态错误。用户明确拒绝 Electron，选择 SwiftUI 原生方案。
+1. **FastAPI Web 版**（第一版）：完整功能、全部自动化测试通过。`python run.py` 或 Mac 双击 `启动.command` 启动，浏览器打开。功能：看板拖拽、仪表盘、日历、CSV 导出。
+2. **SwiftUI 原生版**（第二版）：代码在 Linux 上编写，推送到 Mac 编译时发现大量 bug。用户放弃此版本，回到 Web 版。
+3. **Web 版（当前）**：回退到第一版，添加了 `启动.command` 双击启动脚本。代码已验证全部通过。
 
-**Current status:** SwiftUI 代码（9 个任务，Package.swift + 全部视图）已推送到 https://github.com/chen-zhuofu/Interview-tracking.git 的 master 分支。代码在 Linux 上编写，未经编译验证。用户 MacBook Air 上已安装完整 Xcode（`xcode-select -p` 输出 `/Applications/Xcode.app/Contents/Developer`），但 `open Package.swift` 无反应，已指导使用 `open -a Xcode Package.swift` 或通过 Xcode File → Open 手动打开。下一步是 ⌘R 编译运行，遇到编译错误需修复。
+**Why:** SwiftUI 代码在 Linux 上无法编译测试，导致大量编译错误。用户选择回到有测试能力的 Web 版。
 
-**How to apply:** 评估完成度时，以 macOS 原生 `.app` 为唯一验收标准；SwiftUI 代码已于 Linux 上编写完毕，需在 macOS 14+ Xcode 上编译验证。
+**Current status:** Web 版（FastAPI + Jinja2 + SQLite）是功能完整的可交付版本。SwiftUI 代码保留在 `InterviewTracker/` 目录供以后参考。
+
+**User verified on Mac:** 用户在 MacBook Air（hostname `MacBook-Air-10`）上成功运行 Web 版。遇到两个常见问题并已解决：\n- `ModuleNotFoundError: uvicorn` → 需要先 `pip install -r requirements.txt`\n- `address already in use` (port 8000) → `lsof -ti:8000 | xargs kill` 关掉残留进程\n\n**How to apply:** 以 Web 版为当前交付物。启动方式：Mac 上双击 `启动.command` 或 `python run.py`。SwiftUI 代码暂不维护。
