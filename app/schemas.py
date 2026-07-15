@@ -61,7 +61,7 @@ class StageUpdate(BaseModel):
 class InterviewCreate(BaseModel):
     application_id: int
     interview_type: str
-    interview_date: Optional[datetime] = None
+    scheduled_time: datetime
     interviewer: Optional[str] = None
     result: Optional[str] = None
     notes: Optional[str] = None
