@@ -4,3 +4,8 @@ __pycache__/
 /tmp/
 data/*.db
 .venv/
+
+# Swift build artifacts
+.build/
+.swiftpm/
+.DS_Store
