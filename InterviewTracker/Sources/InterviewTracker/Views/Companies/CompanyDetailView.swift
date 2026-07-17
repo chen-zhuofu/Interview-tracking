@@ -108,7 +108,7 @@ struct CompanyDetailView: View {
                     .foregroundStyle(AppTheme.muted)
             }
         }
-        .background(AppTheme.background)
+        .background(Color.clear)
         .alert("整理失败", isPresented: Binding(
             get: { formatError != nil },
             set: { if !$0 { formatError = nil } }
@@ -174,7 +174,7 @@ struct CompanyDetailView: View {
                 .background(AppTheme.accent.opacity(0.2), in: Capsule())
                 .foregroundStyle(AppTheme.accent)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.hoverCue)
             .disabled(isFormatting)
             .help(expandedSection == nil ? "整理所有栏目" : "只整理当前扩大的栏目")
         }
@@ -245,7 +245,7 @@ struct CompanyDetailView: View {
                         .frame(width: 22, height: 22)
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.hoverCue)
                 .help(expanded ? "还原" : "扩大")
 
                 Button {
@@ -263,7 +263,7 @@ struct CompanyDetailView: View {
                     .frame(width: 22, height: 22)
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.hoverCue)
                 .disabled(isFormatting || binding.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 .help("只整理这一栏")
             }

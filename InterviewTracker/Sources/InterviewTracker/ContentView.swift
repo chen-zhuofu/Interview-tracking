@@ -5,18 +5,26 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject private var chatViewModel = ChatViewModel()
     @StateObject private var navigation = NavigationStore()
+    @State private var warpTrigger = 0
 
     var body: some View {
         GeometryReader { geo in
             let panelWidth = max(260, geo.size.width * 0.25)
 
             ZStack(alignment: .bottom) {
+                DeepSpaceBackground(warpTrigger: warpTrigger)
+
                 VStack(spacing: 0) {
                     topBar
                     overviewDetail
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(AppTheme.background)
+                        .id(navigation.current)
+                        .transition(.asymmetric(
+                            insertion: .opacity.combined(with: .scale(scale: 0.985)),
+                            removal: .opacity.combined(with: .scale(scale: 1.015))
+                        ))
                 }
+                .animation(.easeOut(duration: 0.45), value: navigation.current)
                 .safeAreaInset(edge: .bottom) {
                     Color.clear.frame(height: chatViewModel.isExpanded ? 390 : 78)
                 }
@@ -63,9 +71,12 @@ struct ContentView: View {
         }
         .environmentObject(navigation)
         .environmentObject(chatViewModel)
-        .background(AppTheme.background)
+        .background(AppTheme.backgroundDeep)
         .preferredColorScheme(.dark)
         .animation(.spring(response: 0.35, dampingFraction: 0.86), value: navigation.isCalendarPanelOpen)
+        .onChange(of: navigation.current) { _, _ in
+            warpTrigger += 1
+        }
         .onAppear {
             LegacyMigrator.runIfNeeded(in: modelContext)
         }
@@ -73,17 +84,25 @@ struct ContentView: View {
 
     private var topBar: some View {
         HStack(alignment: .center) {
-            HStack(alignment: .center, spacing: 10) {
-                LangbridgeLogoView(size: 40)
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("Interview")
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
-                        .foregroundStyle(AppTheme.textPrimary)
-                    Text("Tracker")
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
-                        .foregroundStyle(AppTheme.accent)
+            Button {
+                navigation.goOverview()
+            } label: {
+                HStack(alignment: .center, spacing: 10) {
+                    LangbridgeLogoView(size: 40)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("Interview")
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .foregroundStyle(AppTheme.textPrimary)
+                        Text("Tracker")
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .foregroundStyle(AppTheme.accent)
+                    }
                 }
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .help("返回首页")
+            .accessibilityLabel("返回首页")
 
             HStack(spacing: 8) {
                 Button {
@@ -94,7 +113,7 @@ struct ContentView: View {
                         .frame(width: 28, height: 28)
                         .background(AppTheme.elevated, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.hoverCue)
                 .foregroundStyle(navigation.canGoBack ? AppTheme.textPrimary : AppTheme.muted)
                 .disabled(!navigation.canGoBack)
                 .help("后退（⌥⌘←）")
@@ -107,7 +126,7 @@ struct ContentView: View {
                         .frame(width: 28, height: 28)
                         .background(AppTheme.elevated, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.hoverCue)
                 .foregroundStyle(navigation.canGoForward ? AppTheme.textPrimary : AppTheme.muted)
                 .disabled(!navigation.canGoForward)
                 .help("前进（⌥⌘→）")
@@ -130,7 +149,7 @@ struct ContentView: View {
                     .frame(width: 32, height: 32)
                     .background(AppTheme.elevated.opacity(0.7), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.hoverCue)
             .help("阅读收藏：论文 / tech blog")
 
             Button {
@@ -147,7 +166,7 @@ struct ContentView: View {
                     .frame(width: 32, height: 32)
                     .background(AppTheme.elevated.opacity(0.7), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.hoverCue)
             .help("求职资料库：简历 / Slides / Cover Letter")
             .padding(.trailing, 4)
 
@@ -160,12 +179,12 @@ struct ContentView: View {
                     .frame(width: 32, height: 32)
                     .background(AppTheme.elevated.opacity(0.7), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.hoverCue)
             .help("设置")
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 10)
-        .background(AppTheme.background)
+        .background(AppTheme.background.opacity(0.55))
         .background(navigationKeyShortcuts)
     }
 

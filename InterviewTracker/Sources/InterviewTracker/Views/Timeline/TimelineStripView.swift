@@ -184,7 +184,7 @@ struct TimelineStripView: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(AppTheme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(AppTheme.card.opacity(0.8), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(AppTheme.stroke, lineWidth: 1)
@@ -359,17 +359,19 @@ struct TimelineStripView: View {
 
     private func dayCluster(day: Date, dayKey: String, events: [TimelineDisplayEvent]) -> some View {
         let hovering = hoveredDayKey == dayKey || draggingNodeID != nil && hoveredDayKey == dayKey
-        let fanOut = hovering && (events.count > 1 || draggingNodeID != nil)
+        let isToday = Calendar.current.isDateInToday(day)
+        // 只有今天默认展开；其他日期显示圆点，悬停才展开。
+        let showChips = !events.isEmpty && (hovering || isToday)
         return ZStack {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .fill(dropHighlightDayKey == dayKey ? AppTheme.accent.opacity(0.12) : Color.clear)
 
             if events.isEmpty {
                 Color.clear
-            } else if fanOut || (hovering && events.count > 1) {
+            } else if showChips {
                 VStack(spacing: 4) {
                     ForEach(Array(events.prefix(8))) { event in
-                        interactiveChip(event, emphasize: true)
+                        interactiveChip(event, emphasize: isToday || hovering)
                     }
                     if events.count > 8 {
                         Text("+\(events.count - 8)")
@@ -378,8 +380,6 @@ struct TimelineStripView: View {
                     }
                 }
                 .transition(.opacity.combined(with: .scale(scale: 0.94)))
-            } else if events.count == 1 {
-                interactiveChip(events[0], emphasize: false)
             } else {
                 dotsCluster(events)
             }
@@ -549,7 +549,7 @@ struct TimelineStripView: View {
         } label: {
             nodeChipLabel(event, emphasize: emphasize)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.hoverCue)
         .contextMenu {
             Button("查看 / 编辑详情…") {
                 detailNodeID = event.id

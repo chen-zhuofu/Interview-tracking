@@ -163,6 +163,7 @@ struct DashboardView: View {
     @State private var timelineExpanded = false
     @State private var interviewScrollMetrics = InterviewScrollMetrics()
     @State private var pendingDeleteCompany: Company?
+    @State private var hoveredCompanySliceID: UUID?
     @StateObject private var interviewSwipeSwitcher = InterviewPanelSwipeSwitcher()
 
     /// One application per company (company = smallest unit on the dashboard).
@@ -374,7 +375,7 @@ struct DashboardView: View {
         .scrollIndicators(.hidden)
         // While pointer is over timeline or interview panel, don't scroll the page.
         .scrollDisabled(hoveringInterviewPanel || hoveringTimeline)
-        .background(AppTheme.background)
+        .background(Color.clear)
         .confirmationDialog(
             pendingDeleteCompany.map { "删除「\($0.name)」？" } ?? "删除公司",
             isPresented: Binding(
@@ -486,7 +487,7 @@ struct DashboardView: View {
                         .frame(width: 28, height: 28)
                         .background(accent.opacity(0.14), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.hoverCueContained)
                 .help("打开日历")
             }
 
@@ -506,6 +507,7 @@ struct DashboardView: View {
                                     upcomingCard(node, isPast: showPastInterviews)
                                 }
                             }
+                            .padding(.horizontal, 2)
                             .padding(.bottom, 2)
                             .background(
                                 GeometryReader { content in
@@ -548,12 +550,13 @@ struct DashboardView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .clipped()
         }
         .padding(18)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
         .background {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(AppTheme.card)
+                .fill(AppTheme.card.opacity(0.8))
                 .overlay {
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
                         .fill(
@@ -579,6 +582,7 @@ struct DashboardView: View {
                     lineWidth: 1
                 )
         )
+        .interactiveCardHover()
         .contentShape(Rectangle())
         .onHover { hovering in
             hoveringInterviewPanel = hovering
@@ -680,7 +684,7 @@ struct DashboardView: View {
             )
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.hoverCueContained)
     }
 
     private func outcomeBadgeColor(_ outcome: InterviewOutcome) -> Color {
@@ -698,7 +702,12 @@ struct DashboardView: View {
     }
 
     /// 命中测试：SectorMark 从 12 点方向顺时针排；等分环里点到第几格就是第几家公司。
-    private func slice(at point: CGPoint, in frame: CGRect, slices: [CompanySlice]) -> CompanySlice? {
+    private func slice(
+        at point: CGPoint,
+        in frame: CGRect,
+        slices: [CompanySlice],
+        includeExtendedOuter: Bool = false
+    ) -> CompanySlice? {
         guard !slices.isEmpty else { return nil }
         let center = CGPoint(x: frame.midX, y: frame.midY)
         let dx = point.x - center.x
@@ -706,7 +715,8 @@ struct DashboardView: View {
         let radius = sqrt(dx * dx + dy * dy)
         let outer = min(frame.width, frame.height) / 2
         let inner = outer * 0.58
-        guard radius >= inner, radius <= outer else { return nil }
+        let activeOuter = includeExtendedOuter ? outer * 0.98 : outer * 0.94
+        guard radius >= inner, radius <= activeOuter else { return nil }
         // 0 在正上方，顺时针增加。
         var angle = atan2(dx, -dy)
         if angle < 0 { angle += 2 * .pi }
@@ -729,22 +739,29 @@ struct DashboardView: View {
                 } else {
                     let slices = companySlices
                     Chart(slices) { item in
-                        // 每家公司一等份，沿环排开。
+                        let isHovered = hoveredCompanySliceID == item.id
+                        // 每家公司一等份，沿环排开；悬停时外径略伸，扇区略放大。
                         SectorMark(
                             angle: .value("公司", 1),
                             innerRadius: .ratio(0.58),
-                            angularInset: 1.5
+                            outerRadius: .ratio(isHovered ? 0.98 : 0.94),
+                            angularInset: isHovered ? 1.0 : 1.5
                         )
                         .foregroundStyle(by: .value("状态", item.bucket.label))
-                        .cornerRadius(4)
+                        .cornerRadius(isHovered ? 5 : 4)
+                        .opacity(hoveredCompanySliceID == nil || isHovered ? 1 : 0.82)
                         .annotation(position: .overlay) {
                             Text(item.name)
                                 .font(.system(size: 9, weight: .semibold))
                                 .foregroundStyle(.white)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.7)
+                                // Keep font size fixed; only scale, so text doesn't reflow/jitter.
+                                .scaleEffect(isHovered ? 1.05 : 1, anchor: .center)
+                                .animation(.spring(response: 0.22, dampingFraction: 0.86), value: isHovered)
                         }
                     }
+                    .animation(.spring(response: 0.28, dampingFraction: 0.82), value: hoveredCompanySliceID)
                     .chartForegroundStyleScale([
                         OpportunityBucket.notStarted.label: AppTheme.accent,
                         OpportunityBucket.inProgress.label: AppTheme.orange,
@@ -772,10 +789,33 @@ struct DashboardView: View {
                             Rectangle()
                                 .fill(Color.clear)
                                 .contentShape(Rectangle())
+                                .onContinuousHover { phase in
+                                    guard let anchor = proxy.plotFrame else {
+                                        hoveredCompanySliceID = nil
+                                        return
+                                    }
+                                    let frame = geo[anchor]
+                                    switch phase {
+                                    case .active(let location):
+                                        hoveredCompanySliceID = slice(
+                                            at: location,
+                                            in: frame,
+                                            slices: slices,
+                                            includeExtendedOuter: true
+                                        )?.id
+                                    case .ended:
+                                        hoveredCompanySliceID = nil
+                                    }
+                                }
                                 .onTapGesture { location in
                                     guard let anchor = proxy.plotFrame else { return }
                                     let frame = geo[anchor]
-                                    if let slice = slice(at: location, in: frame, slices: slices) {
+                                    if let slice = slice(
+                                        at: location,
+                                        in: frame,
+                                        slices: slices,
+                                        includeExtendedOuter: true
+                                    ) {
                                         navigation.openCompany(slice.id)
                                     }
                                 }
@@ -885,7 +925,7 @@ struct DashboardView: View {
             )
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.hoverCue)
         .help(item.label)
     }
 
@@ -965,7 +1005,7 @@ struct DashboardView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .contentShape(Rectangle())
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.hoverCueContained)
                         .contextMenu {
                             if let company = app.company {
                                 Button("删除这家公司…", role: .destructive) {
@@ -1039,10 +1079,11 @@ struct DashboardCard<Content: View>: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(AppTheme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(AppTheme.card.opacity(0.8), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(AppTheme.stroke, lineWidth: 1)
         )
+        .interactiveCardHover()
     }
 }

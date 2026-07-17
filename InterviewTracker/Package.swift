@@ -20,7 +20,8 @@ let package = Package(
             dependencies: ["InterviewTrackerLogic"],
             path: "Sources/InterviewTracker",
             resources: [
-                .copy("Resources/Langbridge_Graph.svg")
+                .copy("Resources/Langbridge_Graph.svg"),
+                .copy("Resources/DeepSpace.png")
             ]
         ),
         .testTarget(

@@ -144,7 +144,7 @@ struct CalendarView: View {
                     .frame(width: 28, height: 28)
                     .background(AppTheme.elevated, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.hoverCue)
             .help("关闭")
         }
         .padding(.horizontal, 16)
@@ -179,7 +179,7 @@ struct CalendarView: View {
                     } label: {
                         nodeCard(node)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.hoverCue)
                 }
             }
         }

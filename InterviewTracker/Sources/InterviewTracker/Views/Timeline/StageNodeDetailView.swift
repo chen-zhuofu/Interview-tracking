@@ -387,7 +387,7 @@ struct AttachmentGridView: View {
                     .stroke(AppTheme.stroke, lineWidth: 1)
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.hoverCue)
         .contextMenu {
             Button("在 Finder 中显示") {
                 NSWorkspace.shared.activateFileViewerSelecting(

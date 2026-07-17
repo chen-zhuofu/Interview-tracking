@@ -79,7 +79,7 @@ struct ReadingLibraryView: View {
             .padding(28)
             .padding(.bottom, 40)
         }
-        .background(AppTheme.background)
+        .background(Color.clear)
         .sheet(isPresented: $showAddSheet) {
             ReadingItemFormSheet(existing: nil)
         }
@@ -193,7 +193,7 @@ struct ReadingLibraryView: View {
                     .padding(.vertical, 8)
                     .background(AppTheme.accent, in: Capsule())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.hoverCue)
             .keyboardShortcut("n", modifiers: .command)
             .help("添加论文或博客（⌘N）")
         }
@@ -217,7 +217,7 @@ struct ReadingLibraryView: View {
                                 in: Capsule()
                             )
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.hoverCue)
                 }
             }
         }
@@ -364,7 +364,7 @@ private struct ReadingCard: View {
                             .font(.system(size: 14, weight: .medium))
                             .foregroundStyle(item.hasNotes ? AppTheme.accent : AppTheme.muted)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.hoverCue)
                     .help(item.hasNotes ? "查看 / 编辑阅读笔记" : "写阅读笔记")
 
                     Button(action: onToggleRead) {
@@ -372,7 +372,7 @@ private struct ReadingCard: View {
                             .font(.system(size: 16, weight: .medium))
                             .foregroundStyle(item.isRead ? AppTheme.green : AppTheme.muted)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.hoverCue)
                     .help(item.isRead ? "标为未读" : "标为已读")
                 }
 
@@ -403,7 +403,7 @@ private struct ReadingCard: View {
                                 .padding(.vertical, 3)
                                 .background(AppTheme.accent.opacity(0.12), in: Capsule())
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.hoverCue)
                     }
                     Spacer()
                     Text(item.createdAt.formatted(.dateTime.month(.twoDigits).day(.twoDigits)))

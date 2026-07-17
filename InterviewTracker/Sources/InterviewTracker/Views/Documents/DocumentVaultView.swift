@@ -58,7 +58,7 @@ struct DocumentVaultView: View {
             .padding(28)
             .padding(.bottom, 40)
         }
-        .background(AppTheme.background)
+        .background(Color.clear)
         .sheet(item: $editingDocument) { doc in
             DocumentEditSheet(document: doc)
         }
@@ -163,7 +163,7 @@ struct DocumentVaultView: View {
                     .padding(.vertical, 8)
                     .background(AppTheme.orange, in: Capsule())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.hoverCue)
             .help("也可以直接把文件拖进页面")
         }
     }
@@ -443,7 +443,7 @@ private struct DocumentCard: View {
                     in: Capsule()
                 )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.hoverCue)
     }
 }
 
