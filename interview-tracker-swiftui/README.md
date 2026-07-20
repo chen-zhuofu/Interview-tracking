@@ -2,7 +2,7 @@
 
 Track job applications in natural language. The DeepSeek agent reads/writes companies, timelines, journals, todos, and time logs; **writes show an approval card first**.
 
-**UI language defaults to English.** Switch with the top-bar **EN / 中** control or in Settings.  
+**UI language defaults to English.** Switch to 中文 in **Settings**.  
 中文版说明：[README.zh-CN.md](README.zh-CN.md) · 仓库根目录：[../README.md](../README.md) / [../README.zh-CN.md](../README.zh-CN.md)
 
 ## Requirements
@@ -56,7 +56,11 @@ Keys & data: `~/Library/Application Support/InterviewTracker/`
 
 ## Google Calendar (optional)
 
-When enabled, Google Calendar is the source of truth for linked interviews. Configure a desktop OAuth client and put credentials in Application Support (see Chinese README or prior docs), or edit `GoogleOAuthConfig.swift` and re-run `./pack-app.sh`.
+When enabled, Google Calendar is the source of truth for linked interviews. Create a desktop OAuth client in Google Cloud, then put Client ID / Secret only in:
+
+`~/Library/Application Support/InterviewTracker/google_oauth_client.json`
+
+Never commit those values to git.
 
 ## UI map
 

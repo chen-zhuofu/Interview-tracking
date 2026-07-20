@@ -1,16 +1,15 @@
 import Foundation
 
-/// App-owned Google OAuth client (Desktop type).
-/// End users only click “用 Google 账号登录”; they never see these values.
+/// Google OAuth client (Desktop type) for Calendar sync.
 ///
-/// Fill `clientId` / `clientSecret` once from Google Cloud Console,
-/// or drop the same fields into:
+/// Do **not** commit real Client ID / Secret.
+/// Put credentials only in:
 /// `~/Library/Application Support/InterviewTracker/google_oauth_client.json`
 enum GoogleOAuthConfig {
-    /// Paste your Desktop OAuth Client ID here (…apps.googleusercontent.com).
-    static let clientId = "85931260103-kc97b67n2a7llsi9v8ufr2lsujcv6e2j.apps.googleusercontent.com"
-    /// Paste your Desktop OAuth Client Secret here.
-    static let clientSecret = "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"
+    /// Optional local-dev override. Keep empty in git.
+    static let clientId = ""
+    /// Optional local-dev override. Keep empty in git.
+    static let clientSecret = ""
 
     private static let fileName = "google_oauth_client.json"
 

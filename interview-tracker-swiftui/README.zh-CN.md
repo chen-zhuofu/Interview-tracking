@@ -2,7 +2,7 @@
 
 用自然语言记录求职进度。DeepSeek Agent 通过工具读写公司、面试时间线、日志、待办、时间记录等；**写入前会弹出批准卡**。
 
-**界面默认英文**，可在顶栏或设置里切到中文。
+**界面默认英文**，可在 **设置** 里切到中文。
 
 从仓库根目录 clone 后的完整步骤见：[仓库根中文 README](../README.zh-CN.md)。英文：[README.md](README.md) · [../README.md](../README.md)。
 
@@ -82,7 +82,7 @@ cat > ~/Library/Application\ Support/InterviewTracker/google_oauth_client.json <
 EOF
 ```
 
-或改 `Sources/InterviewTracker/Services/GoogleOAuthConfig.swift` 后重新 `./pack-app.sh`。
+不要把 Client ID / Secret 写进源码或提交到 Git。
 
 ## 界面一览
 
