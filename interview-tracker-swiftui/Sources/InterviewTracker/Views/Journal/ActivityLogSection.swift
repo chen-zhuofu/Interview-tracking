@@ -5,12 +5,14 @@ import SwiftData
 /// 记录可以靠聊天里跟 agent 说「几点开始干活 / 收工了」，也可以在这里手动加 / 改。
 struct ActivityLogSection: View {
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var language: LanguageStore
     @Query(sort: \ActivitySession.startAt, order: .reverse) private var sessions: [ActivitySession]
 
     @State private var editorSession: ActivitySession?
     @State private var showAdd = false
 
     private var cal: Calendar { Calendar.current }
+
 
     /// 所有记录按天分组，最近的一天在最上面；每天内部按开始时间排。
     private var dayGroups: [(day: Date, sessions: [ActivitySession])] {
@@ -37,7 +39,10 @@ struct ActivityLogSection: View {
 
             Group {
                 if sessions.isEmpty {
-                    Text("还没有记录。跟 agent 说「9点开始干活」「收工了」，或点右上角＋手动加一段。")
+                    Text(language.t(
+                        "No entries yet. Tell the agent “started work at 9” / “done for today”, or tap + to add one.",
+                        "还没有记录。跟 agent 说「9点开始干活」「收工了」，或点右上角＋手动加一段。"
+                    ))
                         .font(.caption)
                         .foregroundStyle(AppTheme.muted)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -73,19 +78,19 @@ struct ActivityLogSection: View {
 
     private var header: some View {
         HStack(alignment: .center, spacing: 8) {
-            Text("时间与状态记录")
+            Text(language.t("Time & mood log", "时间与状态记录"))
                 .font(.headline)
                 .foregroundStyle(AppTheme.textPrimary)
             Spacer()
             Button {
                 showAdd = true
             } label: {
-                Label("加一段", systemImage: "plus")
+                Label(language.t("Add block", "加一段"), systemImage: "plus")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(AppTheme.accent)
             }
             .buttonStyle(.hoverCue)
-            .help("手动添加一段时间记录")
+            .help(language.t("Manually add a time block", "手动添加一段时间记录"))
         }
     }
 
@@ -99,7 +104,7 @@ struct ActivityLogSection: View {
                     .foregroundStyle(JournalDateFormat.isToday(day) ? AppTheme.accent : AppTheme.textPrimary)
                 Spacer(minLength: 4)
                 if total > 0 {
-                    Text("共 \(ActivityDuration.label(total))")
+                    Text(language.t("Total \(ActivityDuration.label(total))", "共 \(ActivityDuration.label(total))"))
                         .font(.system(size: 10, weight: .semibold, design: .rounded))
                         .foregroundStyle(AppTheme.muted)
                 }
@@ -146,6 +151,7 @@ private struct ActivityRow: View {
     let onTap: () -> Void
     let onStop: () -> Void
 
+    @EnvironmentObject private var language: LanguageStore
     @State private var hovering = false
 
     var body: some View {
@@ -155,8 +161,12 @@ private struct ActivityRow: View {
                     .font(.system(size: 11, weight: .medium, design: .monospaced))
                     .foregroundStyle(AppTheme.textSecondary)
                 Spacer(minLength: 4)
-                Text(session.isOngoing ? "进行中 · \(ActivityDuration.label(session.durationSeconds))"
-                                       : ActivityDuration.label(session.durationSeconds))
+                Text(session.isOngoing
+                     ? language.t(
+                        "In progress · \(ActivityDuration.label(session.durationSeconds))",
+                        "进行中 · \(ActivityDuration.label(session.durationSeconds))"
+                     )
+                     : ActivityDuration.label(session.durationSeconds))
                     .font(.system(size: 10, weight: .semibold, design: .rounded))
                     .foregroundStyle(session.isOngoing ? AppTheme.orange : AppTheme.muted)
             }
@@ -176,7 +186,7 @@ private struct ActivityRow: View {
                 }
 
                 if !session.status.isEmpty {
-                    Text(session.status)
+                    Text(statusLabel(session.status))
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(ActivityStatusStyle.color(session.status))
                         .padding(.horizontal, 7)
@@ -189,7 +199,7 @@ private struct ActivityRow: View {
                 Spacer(minLength: 4)
 
                 if session.isOngoing {
-                    Button("结束") { onStop() }
+                    Button(language.t("End", "结束")) { onStop() }
                         .buttonStyle(.hoverCue)
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(AppTheme.orange)
@@ -219,7 +229,17 @@ private struct ActivityRow: View {
         .onHover { value in
             withAnimation(.easeOut(duration: 0.15)) { hovering = value }
         }
-        .help("点一下编辑这段")
+        .help(language.t("Tap to edit this block", "点一下编辑这段"))
+    }
+
+    private func statusLabel(_ status: String) -> String {
+        switch status {
+        case "进行中": return language.t("In progress", "进行中")
+        case "已完成": return language.t("Done", "已完成")
+        case "未完成": return language.t("Not done", "未完成")
+        case "暂停": return language.t("Paused", "暂停")
+        default: return status
+        }
     }
 
     private var timeRange: String {
@@ -245,6 +265,7 @@ struct ActivityDayPickerSheet: View {
     let onPick: (Date) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var language: LanguageStore
     @State private var chosen: Date
 
     init(day: Date, onPick: @escaping (Date) -> Void) {
@@ -255,14 +276,17 @@ struct ActivityDayPickerSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("挑一天看")
+            Text(language.t("Pick a day", "挑一天看"))
                 .font(.headline)
-            Text("选一个日期，看那天的时间记录。")
+            Text(language.t(
+                "Choose a date to see that day’s time log.",
+                "选一个日期，看那天的时间记录。"
+            ))
                 .font(.caption)
                 .foregroundStyle(AppTheme.muted)
 
             DatePicker(
-                "日期",
+                language.t("Date", "日期"),
                 selection: $chosen,
                 in: ...Date(),
                 displayedComponents: .date
@@ -272,9 +296,9 @@ struct ActivityDayPickerSheet: View {
 
             HStack {
                 Spacer()
-                Button("取消") { dismiss() }
+                Button(language.t("Cancel", "取消")) { dismiss() }
                     .keyboardShortcut(.cancelAction)
-                Button("看这天") {
+                Button(language.t("View this day", "看这天")) {
                     onPick(chosen)
                     dismiss()
                 }
@@ -295,6 +319,7 @@ struct ActivityEditorSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var language: LanguageStore
 
     @State private var category = ""
     @State private var status = ""
@@ -321,12 +346,17 @@ struct ActivityEditorSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(isEditing ? "编辑这段" : "加一段时间记录")
+            Text(isEditing
+                 ? language.t("Edit this block", "编辑这段")
+                 : language.t("Add a time block", "加一段时间记录"))
                 .font(.headline)
 
-            field("做了什么") {
+            field(language.t("What did you do", "做了什么")) {
                 VStack(alignment: .leading, spacing: 8) {
-                    TextField("活动名，如 工作 / 看博客 / 做饭", text: $category)
+                    TextField(
+                        language.t("Activity, e.g. work / reading / cooking", "活动名，如 工作 / 看博客 / 做饭"),
+                        text: $category
+                    )
                         .textFieldStyle(.roundedBorder)
                     if !suggestions.isEmpty {
                         FlowLayout(spacing: 6, lineSpacing: 6) {
@@ -338,7 +368,7 @@ struct ActivityEditorSheet: View {
                 }
             }
 
-            field("状态") {
+            field(language.t("Mood", "状态")) {
                 FlowLayout(spacing: 6, lineSpacing: 6) {
                     ForEach(ActivityMood.allCases) { m in
                         moodChip(m, selected: mood == m.rawValue) {
@@ -348,25 +378,25 @@ struct ActivityEditorSheet: View {
                 }
             }
 
-            field("完成情况") {
+            field(language.t("Completion", "完成情况")) {
                 FlowLayout(spacing: 6, lineSpacing: 6) {
                     ForEach(ActivitySession.statusPresets, id: \.self) { preset in
-                        chip(preset, selected: status == preset) {
+                        chip(statusLabel(preset), selected: status == preset) {
                             status = (status == preset) ? "" : preset
                         }
                     }
                 }
             }
 
-            field("开始") {
+            field(language.t("Start", "开始")) {
                 DatePicker("", selection: $startAt, displayedComponents: [.date, .hourAndMinute])
                     .labelsHidden()
                     .environment(\.locale, clockLocale)
             }
 
-            field("结束") {
+            field(language.t("End", "结束")) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Toggle("已经结束", isOn: $hasEnd)
+                    Toggle(language.t("Already ended", "已经结束"), isOn: $hasEnd)
                     if hasEnd {
                         // 不给范围限制，否则结束时间调不到比「开始」更早的点（比如上午 0:30）。
                         // 顺序是否合理交给 canSave 校验：结束早于开始时保存按钮会禁用。
@@ -374,33 +404,43 @@ struct ActivityEditorSheet: View {
                             .labelsHidden()
                             .environment(\.locale, clockLocale)
                         if endAt < startAt {
-                            Text("结束早于开始，把「开始」往前调，或改结束时间。")
+                            Text(language.t(
+                                "End is before start — move start earlier, or change the end time.",
+                                "结束早于开始，把「开始」往前调，或改结束时间。"
+                            ))
                                 .font(.caption)
                                 .foregroundStyle(AppTheme.orange)
                         }
                     } else {
-                        Text("不打开就是「进行中」。")
+                        Text(language.t(
+                            "Leave off to keep it “in progress”.",
+                            "不打开就是「进行中」。"
+                        ))
                             .font(.caption)
                             .foregroundStyle(AppTheme.muted)
                     }
                 }
             }
 
-            field("备注（可选）") {
-                TextField("补一句这段做了什么", text: $note, axis: .vertical)
+            field(language.t("Note (optional)", "备注（可选）")) {
+                TextField(
+                    language.t("One more line about this block", "补一句这段做了什么"),
+                    text: $note,
+                    axis: .vertical
+                )
                     .textFieldStyle(.roundedBorder)
                     .lineLimit(1...4)
             }
 
             HStack {
                 if isEditing {
-                    Button("删除", role: .destructive) { deleteExisting() }
+                    Button(language.t("Delete", "删除"), role: .destructive) { deleteExisting() }
                         .foregroundStyle(AppTheme.rose)
                 }
                 Spacer()
-                Button("取消") { dismiss() }
+                Button(language.t("Cancel", "取消")) { dismiss() }
                     .keyboardShortcut(.cancelAction)
-                Button("保存") { save() }
+                Button(language.t("Save", "保存")) { save() }
                     .keyboardShortcut(.defaultAction)
                     .disabled(!canSave)
             }
@@ -408,6 +448,16 @@ struct ActivityEditorSheet: View {
         .padding(24)
         .frame(width: 420)
         .onAppear(perform: loadIfNeeded)
+    }
+
+    private func statusLabel(_ status: String) -> String {
+        switch status {
+        case "进行中": return language.t("In progress", "进行中")
+        case "已完成": return language.t("Done", "已完成")
+        case "未完成": return language.t("Not done", "未完成")
+        case "暂停": return language.t("Paused", "暂停")
+        default: return status
+        }
     }
 
     @ViewBuilder

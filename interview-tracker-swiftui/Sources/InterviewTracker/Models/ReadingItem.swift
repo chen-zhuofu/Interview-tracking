@@ -81,9 +81,9 @@ enum ReadingKind: String, CaseIterable {
 
     var label: String {
         switch self {
-        case .paper: return "论文"
-        case .blog: return "博客"
-        case .video: return "视频"
+        case .paper: return L10n.t("Paper", "论文")
+        case .blog: return L10n.t("Blog", "博客")
+        case .video: return L10n.t("Video", "视频")
         }
     }
 

@@ -6,14 +6,11 @@ import UniformTypeIdentifiers
 /// 求职资料库：简历 / slides / cover letter，拖入即存，一键复制去投递。
 struct DocumentVaultView: View {
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var language: LanguageStore
     @Query(sort: \CareerDocument.updatedAt, order: .reverse) private var documents: [CareerDocument]
 
-    private enum KindFilter: String, CaseIterable {
-        case all = "全部"
-        case resume = "简历"
-        case slides = "Slides"
-        case coverLetter = "Cover Letter"
-        case other = "其他"
+    private enum KindFilter: CaseIterable, Hashable {
+        case all, resume, slides, coverLetter, other
 
         var kind: DocumentKind? {
             switch self {
@@ -22,6 +19,16 @@ struct DocumentVaultView: View {
             case .slides: return .slides
             case .coverLetter: return .coverLetter
             case .other: return .other
+            }
+        }
+
+        func label(_ language: LanguageStore) -> String {
+            switch self {
+            case .all: return L10n.t("All", "全部")
+            case .resume: return L10n.t("Resume", "简历")
+            case .slides: return "Slides"
+            case .coverLetter: return "Cover Letter"
+            case .other: return L10n.t("Other", "其他")
             }
         }
     }
@@ -76,7 +83,7 @@ struct DocumentVaultView: View {
                         Image(systemName: "tray.and.arrow.down.fill")
                             .font(.system(size: 34))
                             .foregroundStyle(AppTheme.orange)
-                        Text("松手存入资料库")
+                        Text(language.t("Drop to save into vault", "松手存入资料库"))
                             .font(.headline)
                             .foregroundStyle(AppTheme.textPrimary)
                     }
@@ -92,10 +99,13 @@ struct DocumentVaultView: View {
     private var header: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 8) {
-                Text("求职资料库")
+                Text(language.t("Document vault", "求职资料库"))
                     .font(.system(size: 34, weight: .bold, design: .rounded))
                     .foregroundStyle(AppTheme.textPrimary)
-                Text("简历、slides、cover letter 拖进来；投递时「复制文件」直接 ⌘V 进邮件或上传框")
+                Text(language.t(
+                    "Drop in resumes, slides, and cover letters; Copy file then ⌘V into email or upload dialogs",
+                    "简历、slides、cover letter 拖进来；投递时「复制文件」直接 ⌘V 进邮件或上传框"
+                ))
                     .font(.system(size: 14, weight: .medium, design: .rounded))
                     .foregroundStyle(AppTheme.textSecondary)
             }
@@ -127,7 +137,7 @@ struct DocumentVaultView: View {
         HStack(spacing: 12) {
             Picker("", selection: $kindFilter) {
                 ForEach(KindFilter.allCases, id: \.self) { filter in
-                    Text(filter.rawValue).tag(filter)
+                    Text(filter.label(language)).tag(filter)
                 }
             }
             .pickerStyle(.segmented)
@@ -138,7 +148,7 @@ struct DocumentVaultView: View {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(AppTheme.muted)
-                TextField("搜标题 / 备注 / 公司 / 文件名", text: $searchText)
+                TextField(language.t("Search title / notes / company / filename", "搜标题 / 备注 / 公司 / 文件名"), text: $searchText)
                     .textFieldStyle(.plain)
                     .foregroundStyle(AppTheme.textPrimary)
             }
@@ -156,7 +166,7 @@ struct DocumentVaultView: View {
             Button {
                 importViaPanel()
             } label: {
-                Label("导入文件", systemImage: "plus")
+                Label(language.t("Import files", "导入文件"), systemImage: "plus")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.black)
                     .padding(.horizontal, 14)
@@ -164,7 +174,7 @@ struct DocumentVaultView: View {
                     .background(AppTheme.orange, in: Capsule())
             }
             .buttonStyle(.hoverCue)
-            .help("也可以直接把文件拖进页面")
+            .help(language.t("You can also drag files onto this page", "也可以直接把文件拖进页面"))
         }
     }
 
@@ -194,12 +204,17 @@ struct DocumentVaultView: View {
             Image(systemName: "tray.full")
                 .font(.system(size: 36, weight: .light))
                 .foregroundStyle(AppTheme.muted)
-            Text(documents.isEmpty ? "资料库是空的" : "没有匹配的资料")
+            Text(documents.isEmpty
+                 ? language.t("Vault is empty", "资料库是空的")
+                 : language.t("No matching documents", "没有匹配的资料"))
                 .font(.headline)
                 .foregroundStyle(AppTheme.textSecondary)
             Text(documents.isEmpty
-                 ? "把简历、slides、cover letter 直接拖进这个页面，或点右上角「导入文件」。"
-                 : "换个筛选条件或搜索词试试。")
+                 ? language.t(
+                    "Drop resumes, slides, or cover letters onto this page, or tap Import files.",
+                    "把简历、slides、cover letter 直接拖进这个页面，或点右上角「导入文件」。"
+                 )
+                 : language.t("Try a different filter or search.", "换个筛选条件或搜索词试试。"))
                 .font(.caption)
                 .foregroundStyle(AppTheme.muted)
         }
@@ -305,6 +320,7 @@ private struct DocumentCard: View {
     let onEdit: () -> Void
     let onDelete: () -> Void
 
+    @EnvironmentObject private var language: LanguageStore
     @State private var hovering = false
 
     private var color: Color {
@@ -389,13 +405,15 @@ private struct DocumentCard: View {
                 // 常用操作一排放卡片上，投递时不用翻菜单。
                 HStack(spacing: 8) {
                     actionChip(
-                        justCopied ? "已复制 ✓" : "复制文件",
+                        justCopied
+                        ? language.t("Copied ✓", "已复制 ✓")
+                        : language.t("Copy file", "复制文件"),
                         icon: justCopied ? "checkmark" : "doc.on.doc",
                         emphasized: justCopied,
                         action: onCopy
                     )
                     actionChip("Finder", icon: "folder", action: onReveal)
-                    actionChip("编辑", icon: "pencil", action: onEdit)
+                    actionChip(language.t("Edit", "编辑"), icon: "pencil", action: onEdit)
                 }
             }
             .padding(14)
@@ -416,14 +434,14 @@ private struct DocumentCard: View {
             }
         }
         .contextMenu {
-            Button("打开", action: onOpen)
-            Button("复制文件（⌘V 去投递）", action: onCopy)
-            Button("在 Finder 中显示", action: onReveal)
-            Button("编辑信息…", action: onEdit)
+            Button(language.t("Open", "打开"), action: onOpen)
+            Button(language.t("Copy file (⌘V to apply)", "复制文件（⌘V 去投递）"), action: onCopy)
+            Button(language.t("Show in Finder", "在 Finder 中显示"), action: onReveal)
+            Button(language.t("Edit info…", "编辑信息…"), action: onEdit)
             Divider()
-            Button("删除", role: .destructive, action: onDelete)
+            Button(language.t("Delete", "删除"), role: .destructive, action: onDelete)
         }
-        .help("点击打开 · 右键更多操作")
+        .help(language.t("Click to open · right-click for more", "点击打开 · 右键更多操作"))
     }
 
     private func actionChip(
@@ -454,6 +472,7 @@ private struct DocumentEditSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var language: LanguageStore
 
     @State private var title = ""
     @State private var kind: DocumentKind = .resume
@@ -463,10 +482,10 @@ private struct DocumentEditSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("编辑资料")
+            Text(language.t("Edit document", "编辑资料"))
                 .font(.headline)
 
-            LabeledContent("文件") {
+            LabeledContent(language.t("File", "文件")) {
                 Text(document.originalFileName)
                     .font(.caption)
                     .foregroundStyle(AppTheme.muted)
@@ -474,10 +493,10 @@ private struct DocumentEditSheet: View {
                     .truncationMode(.middle)
             }
 
-            TextField("标题", text: $title)
+            TextField(language.t("Title", "标题"), text: $title)
                 .textFieldStyle(.roundedBorder)
 
-            Picker("类型", selection: $kind) {
+            Picker(language.t("Type", "类型"), selection: $kind) {
                 ForEach(DocumentKind.allCases, id: \.self) { kind in
                     Text(kind.label).tag(kind)
                 }
@@ -485,11 +504,11 @@ private struct DocumentEditSheet: View {
             .pickerStyle(.segmented)
             .labelsHidden()
 
-            TextField("关联公司（可选，如 OpenAI）", text: $targetCompany)
+            TextField(language.t("Related company (optional, e.g. OpenAI)", "关联公司（可选，如 OpenAI）"), text: $targetCompany)
                 .textFieldStyle(.roundedBorder)
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("备注（哪个版本、针对什么岗位改的）")
+                Text(language.t("Note (which version, which role it was tailored for)", "备注（哪个版本、针对什么岗位改的）"))
                     .font(.caption)
                     .foregroundStyle(AppTheme.muted)
                 TextEditor(text: $note)
@@ -502,9 +521,9 @@ private struct DocumentEditSheet: View {
 
             HStack {
                 Spacer()
-                Button("取消") { dismiss() }
+                Button(language.t("Cancel", "取消")) { dismiss() }
                     .keyboardShortcut(.cancelAction)
-                Button("保存") {
+                Button(language.t("Save", "保存")) {
                     save()
                     dismiss()
                 }

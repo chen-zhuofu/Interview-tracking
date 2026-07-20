@@ -1,18 +1,19 @@
 # Interview Tracker — macOS
 
-用自然语言记录求职进度。DeepSeek Agent 通过工具读写公司、面试时间线、日志、待办、时间记录等；**写入前会弹出批准卡**。
+Track job applications in natural language. The DeepSeek agent reads/writes companies, timelines, journals, todos, and time logs; **writes show an approval card first**.
 
-从仓库根目录 clone 后的完整步骤见：[仓库根 README](../README.md)。
+**UI language defaults to English.** Switch with the top-bar **EN / 中** control or in Settings.  
+中文版说明：[README.zh-CN.md](README.zh-CN.md) · 仓库根目录：[../README.md](../README.md) / [../README.zh-CN.md](../README.zh-CN.md)
 
-## 系统要求
+## Requirements
 
-- macOS 14 (Sonoma) 或更高
-- Xcode 15+（提供 `swift` 命令行）
-- DeepSeek API Key
-- （可选）Gemini API Key — 聊天发图
-- （可选）Google OAuth — Calendar 同步
+- macOS 14 (Sonoma) or later
+- Xcode 15+ (`swift` CLI)
+- DeepSeek API key
+- (Optional) Gemini API key — chat images
+- (Optional) Google OAuth — Calendar sync
 
-## Clone 后进入本目录
+## Clone into this folder
 
 ```bash
 git clone https://github.com/chen-zhuofu/Interview-tracking.git
@@ -21,90 +22,65 @@ cd Interview-tracking/interview-tracker-swiftui
 
 ## Build
 
-### 打包到桌面（推荐日常使用）
+### Pack to Desktop (daily use)
 
 ```bash
 ./pack-app.sh
 ```
 
-桌面会出现 `InterviewTracker.app`，双击打开。
+Creates `InterviewTracker.app` on the Desktop.
 
-### 开发调试
+### Debug
 
 ```bash
 swift run
-# 或
-open Package.swift   # Xcode 里 ⌘R
-# 或双击 Run.command
+# or
+open Package.swift   # ⌘R in Xcode
+# or double-click Run.command
 ```
 
-跑测试：
+Tests:
 
 ```bash
 swift test
 ```
 
-## 首次使用
+## First launch
 
-1. 打开 App → 设置 → 粘贴 DeepSeek API Key  
-2. （可选）Gemini Key、Google 登录  
-3. 底部聊天框直接说话，例如：  
-   `明天下午3点 DeepSeek Phone Interview，想去程度4`  
-4. 有写操作时检查批准卡，再点「批准并执行」
+1. Settings → paste DeepSeek API Key  
+2. (Optional) Gemini / Google  
+3. Chat in the bottom bar, e.g. `DeepSeek phone screen tomorrow 3pm, desire 4`  
+4. Review the approval card → **Approve & run**
 
-Key 与数据都在本机：
+Keys & data: `~/Library/Application Support/InterviewTracker/`
 
-`~/Library/Application Support/InterviewTracker/`
+## Google Calendar (optional)
 
-## Google Calendar（可选）
+When enabled, Google Calendar is the source of truth for linked interviews. Configure a desktop OAuth client and put credentials in Application Support (see Chinese README or prior docs), or edit `GoogleOAuthConfig.swift` and re-run `./pack-app.sh`.
 
-以 **Google Calendar 为准**：
+## UI map
 
-- 已关联的面试：打开 App 或点同步时，从 Google 拉时间
-- 新安排：写入 Google 主日历
-- 聊天里改的时间：会推到 Google
-
-设置里点 **用 Google 账号登录** → 浏览器授权。
-
-### 开发者一次性配置
-
-1. [Google Cloud Console](https://console.cloud.google.com/) 启用 Calendar API  
-2. OAuth 同意屏幕 → 把自己加为测试用户  
-3. 创建「桌面应用」OAuth 客户端  
-4. 把 Client ID / Secret 写入：
-
-```bash
-mkdir -p ~/Library/Application\ Support/InterviewTracker
-cat > ~/Library/Application\ Support/InterviewTracker/google_oauth_client.json <<'EOF'
-{"clientId":"你的ClientID","clientSecret":"你的ClientSecret"}
-EOF
-```
-
-或改 `Sources/InterviewTracker/Services/GoogleOAuthConfig.swift` 后重新 `./pack-app.sh`。
-
-## 界面一览
-
-| 区域 | 说明 |
+| Area | Role |
 |------|------|
-| 仪表盘 | 机会分布、想去程度、最近日志、待办、接下来的面试 |
-| 公司详情 | 介绍 / JD / 面经 / 复盘；可 link 本地 repo 并用 Cursor 打开 |
-| 日志 | tag、时间与状态、补记 |
-| 待办 | P0–P3，生活 / 职业 |
-| 阅读收藏 / 求职资料 | 论文、博客、简历等 |
-| 日历 | 面试安排 |
-| 底部聊天 | Agent；写操作需批准 |
+| Dashboard | Opportunities, desire, recent journal, todos, upcoming interviews |
+| Company | Intro / JD / interview notes / retrospective; link local repo → Cursor |
+| Journal | Tags, time & mood, backfill |
+| Todos | P0–P3, Life / Career |
+| Reading / Documents | Papers, blogs, resumes… |
+| Calendar | Interview schedule |
+| Chat | Agent; writes need approval |
 
-## 数据
+## Data
 
-- 本地 SwiftData，不上传
-- 启动与写入后会自动备份到 `…/InterviewTracker/backups/`
-- 用户明确说「记住 / feedback」会写入 `user_feedback_memory.jsonl`
+- Local SwiftData only  
+- Auto backups under `…/InterviewTracker/backups/`  
+- Explicit “remember / feedback” lines go to `user_feedback_memory.jsonl`
 
-**不要把** `Application Support` 里的库、Key、备份提交进 git。
+Do not commit Application Support keys, DB, or backups.
 
-## 技术栈
+## Stack
 
-- SwiftUI + SwiftData
-- DeepSeek（tool-calling Agent）
-- 可选 Gemini（识图）、Google Calendar（OAuth2 + PKCE）
-- Charts（仪表盘）
+- SwiftUI + SwiftData  
+- DeepSeek tool-calling agent  
+- Optional Gemini + Google Calendar  
+- Charts on the dashboard  

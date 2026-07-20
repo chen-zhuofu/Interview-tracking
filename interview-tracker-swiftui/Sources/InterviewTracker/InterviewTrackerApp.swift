@@ -5,13 +5,17 @@ import AppKit
 @main
 struct InterviewTrackerApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+    @StateObject private var languageStore = LanguageStore()
 
-    /// 用显式版本化 Schema + 迁移计划打开数据库，防止 SwiftData 自作主张静默清空。
+    /// Open DB with an explicit versioned schema + migration plan.
     let container: ModelContainer = AppModelContainerFactory.make()
 
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(languageStore)
+                .environment(\.locale, languageStore.language.locale)
+                .id(languageStore.language) // force refresh of static labels on switch
         }
         .modelContainer(container)
     }

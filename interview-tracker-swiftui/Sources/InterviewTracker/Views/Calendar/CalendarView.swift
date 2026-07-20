@@ -6,14 +6,25 @@ struct CalendarView: View {
 
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var navigation: NavigationStore
+    @EnvironmentObject private var language: LanguageStore
     @Query private var stageNodes: [StageNode]
 
     private enum DateGroup: String, CaseIterable {
-        case today = "今天"
-        case laterThisWeek = "这周晚些时候"
-        case nextWeek = "下周"
-        case later = "以后"
-        case past = "过去的面试"
+        case today
+        case laterThisWeek
+        case nextWeek
+        case later
+        case past
+
+        func title(_ language: LanguageStore) -> String {
+            switch self {
+            case .today: return language.t("Today", "今天")
+            case .laterThisWeek: return language.t("This week", "这周晚些时候")
+            case .nextWeek: return language.t("Next week", "下周")
+            case .later: return language.t("Later", "以后")
+            case .past: return language.t("Past interviews", "过去的面试")
+            }
+        }
 
         var accent: Color {
             switch self {
@@ -90,9 +101,12 @@ struct CalendarView: View {
             Group {
                 if calendarNodes.isEmpty {
                     ContentUnavailableView(
-                        "暂无面试安排",
+                        language.t("No interviews scheduled", "暂无面试安排"),
                         systemImage: "calendar.badge.clock",
-                        description: Text("在底部聊天框说说时间和公司，会自动出现在这里")
+                        description: Text(language.t(
+                            "Tell chat a time and company — it will show up here",
+                            "在底部聊天框说说时间和公司，会自动出现在这里"
+                        ))
                     )
                     .foregroundStyle(AppTheme.textSecondary)
                 } else {
@@ -100,10 +114,13 @@ struct CalendarView: View {
                         VStack(alignment: .leading, spacing: isPanel ? 20 : 28) {
                             if !isPanel {
                                 VStack(alignment: .leading, spacing: 8) {
-                                    Text("日历")
+                                    Text(language.t("Calendar", "日历"))
                                         .font(.system(size: 34, weight: .bold, design: .rounded))
                                         .foregroundStyle(AppTheme.textPrimary)
-                                    Text("今天、这周、下周，一眼看清节奏")
+                                    Text(language.t(
+                                        "Today, this week, next week — see the rhythm at a glance",
+                                        "今天、这周、下周，一眼看清节奏"
+                                    ))
                                         .font(.system(size: 14, weight: .medium, design: .rounded))
                                         .foregroundStyle(AppTheme.textSecondary)
                                 }
@@ -127,10 +144,10 @@ struct CalendarView: View {
     private var panelHeader: some View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("日历")
+                Text(language.t("Calendar", "日历"))
                     .font(.system(size: 20, weight: .bold, design: .rounded))
                     .foregroundStyle(AppTheme.textPrimary)
-                Text("今天、这周、下周")
+                Text(language.t("Today, this week, next week", "今天、这周、下周"))
                     .font(.caption)
                     .foregroundStyle(AppTheme.muted)
             }
@@ -145,7 +162,7 @@ struct CalendarView: View {
                     .background(AppTheme.elevated, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
             .buttonStyle(.hoverCue)
-            .help("关闭")
+            .help(language.t("Close", "关闭"))
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
@@ -162,7 +179,7 @@ struct CalendarView: View {
                 Capsule()
                     .fill(group.accent)
                     .frame(width: 8, height: 8)
-                Text(group.rawValue)
+                Text(group.title(language))
                     .font(.system(size: 15, weight: .semibold, design: .rounded))
                     .foregroundStyle(group == .past ? AppTheme.textSecondary : AppTheme.textPrimary)
                 Text("\(nodes.count)")
@@ -195,7 +212,7 @@ struct CalendarView: View {
                 .background(AppTheme.orange, in: Capsule())
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(node.application?.company?.name ?? "未知公司")
+                Text(node.application?.company?.name ?? language.t("Unknown company", "未知公司"))
                     .font(.system(size: 15, weight: .semibold, design: .rounded))
                     .foregroundStyle(AppTheme.textPrimary)
                 Text(node.application?.position ?? "")
@@ -208,7 +225,8 @@ struct CalendarView: View {
             Text(
                 node.hasTime
                 ? node.date.formatted(.dateTime.month(.twoDigits).day(.twoDigits).hour().minute())
-                : node.date.formatted(.dateTime.month(.twoDigits).day(.twoDigits)) + " 时间待定"
+                : node.date.formatted(.dateTime.month(.twoDigits).day(.twoDigits))
+                    + " " + language.t("time TBD", "时间待定")
             )
                 .font(.caption.monospacedDigit().weight(.medium))
                 .foregroundStyle(AppTheme.textSecondary)

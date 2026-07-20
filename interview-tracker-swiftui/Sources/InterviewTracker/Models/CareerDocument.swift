@@ -63,10 +63,10 @@ enum DocumentKind: String, CaseIterable {
 
     var label: String {
         switch self {
-        case .resume: return "简历"
+        case .resume: return L10n.t("Resume", "简历")
         case .slides: return "Slides"
         case .coverLetter: return "Cover Letter"
-        case .other: return "其他"
+        case .other: return L10n.t("Other", "其他")
         }
     }
 

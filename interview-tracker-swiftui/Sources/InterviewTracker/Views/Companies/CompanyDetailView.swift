@@ -8,6 +8,7 @@ struct CompanyDetailView: View {
 
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var navigation: NavigationStore
+    @EnvironmentObject private var language: LanguageStore
     @Query private var companies: [Company]
     @Query(sort: \Application.lastUpdated, order: .reverse) private var allApplications: [Application]
     @Query private var allStageNodes: [StageNode]
@@ -29,21 +30,24 @@ struct CompanyDetailView: View {
 
         var id: String { rawValue }
 
-        var title: String {
+        func title(_ language: LanguageStore) -> String {
             switch self {
-            case .companyDescription: return "公司介绍"
-            case .jobDescription: return "岗位 JD"
-            case .review: return "复盘"
-            case .interviewDocs: return "面经"
+            case .companyDescription: return language.t("Company intro", "公司介绍")
+            case .jobDescription: return language.t("Job description", "岗位 JD")
+            case .review: return language.t("Retrospective", "复盘")
+            case .interviewDocs: return language.t("Interview notes", "面经")
             }
         }
 
-        var placeholder: String {
+        func placeholder(_ language: LanguageStore) -> String {
             switch self {
-            case .companyDescription: return "粘贴或聊天归纳公司介绍…"
-            case .jobDescription: return "粘贴职位描述…"
-            case .review: return "自己的复盘…"
-            case .interviewDocs: return "面经：面试题、考点、复盘笔记…"
+            case .companyDescription: return language.t("Paste or chat-summarize the company intro…", "粘贴或聊天归纳公司介绍…")
+            case .jobDescription: return language.t("Paste the job description…", "粘贴职位描述…")
+            case .review: return language.t("Your own retrospective…", "自己的复盘…")
+            case .interviewDocs: return language.t(
+                "Interview notes: questions, topics, takeaways…",
+                "面经：面试题、考点、复盘笔记…"
+            )
             }
         }
 
@@ -85,7 +89,7 @@ struct CompanyDetailView: View {
                         if expandedSection == nil {
                             TimelineStripView(
                                 events: TimelineDisplayEvent.fromNodes(companyStageNodes),
-                                title: "\(company.name) · 时间线"
+                                title: "\(company.name) · \(language.t("Timeline", "时间线"))"
                             )
                         }
                     }
@@ -102,16 +106,19 @@ struct CompanyDetailView: View {
                     )
                 }
             } else {
-                ContentUnavailableView("找不到这家公司", systemImage: "building.2")
+                ContentUnavailableView(
+                    language.t("Company not found", "找不到这家公司"),
+                    systemImage: "building.2"
+                )
                     .foregroundStyle(AppTheme.muted)
             }
         }
         .background(Color.clear)
-        .alert("整理失败", isPresented: Binding(
+        .alert(language.t("Formatting failed", "整理失败"), isPresented: Binding(
             get: { formatError != nil },
             set: { if !$0 { formatError = nil } }
         )) {
-            Button("好", role: .cancel) { formatError = nil }
+            Button(language.t("OK", "好"), role: .cancel) { formatError = nil }
         } message: {
             Text(formatError ?? "")
         }
@@ -125,7 +132,7 @@ struct CompanyDetailView: View {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(maxWidth: 820, maxHeight: 600)
-                    Button("关闭") { self.previewImage = nil }
+                    Button(language.t("Close", "关闭")) { self.previewImage = nil }
                 }
                 .padding(20)
             }
@@ -174,19 +181,21 @@ struct CompanyDetailView: View {
             }
             .buttonStyle(.hoverCue)
             .disabled(isFormatting)
-            .help(expandedSection == nil ? "整理所有栏目" : "只整理当前扩大的栏目")
+            .help(expandedSection == nil
+                  ? language.t("Format all sections", "整理所有栏目")
+                  : language.t("Format only the expanded section", "只整理当前扩大的栏目"))
         }
     }
 
     private var headerAIButtonTitle: String {
         if isFormatting {
-            if expandedSection != nil { return "整理中…" }
-            if formattingSection == nil { return "整理中…" }
+            if expandedSection != nil { return language.t("Formatting…", "整理中…") }
+            if formattingSection == nil { return language.t("Formatting…", "整理中…") }
         }
         if let section = expandedSection {
-            return "AI 整理\(section.title)"
+            return language.t("AI format \(section.title(language))", "AI 整理\(section.title(language))")
         }
-        return "AI 整理格式"
+        return language.t("AI format", "AI 整理格式")
     }
 
     private func detailGrid(_ company: Company) -> some View {
@@ -210,7 +219,10 @@ struct CompanyDetailView: View {
             }
 
             if application == nil {
-                Text("这家公司还没有岗位记录。用聊天补一条即可。")
+                Text(language.t(
+                    "This company has no role yet. Add one via chat.",
+                    "这家公司还没有岗位记录。用聊天补一条即可。"
+                ))
                     .font(.caption)
                     .foregroundStyle(AppTheme.muted)
             }
@@ -222,7 +234,7 @@ struct CompanyDetailView: View {
         let busy = isFormatting && formattingSection == section
         return VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
-                Text(section.title)
+                Text(section.title(language))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(AppTheme.textSecondary)
                 Spacer(minLength: 0)
@@ -245,7 +257,9 @@ struct CompanyDetailView: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.hoverCue)
-                .help(expanded ? "还原" : "扩大")
+                .help(expanded
+                      ? language.t("Collapse", "还原")
+                      : language.t("Expand", "扩大"))
 
                 Button {
                     Task { await formatSection(section) }
@@ -264,7 +278,7 @@ struct CompanyDetailView: View {
                 }
                 .buttonStyle(.hoverCue)
                 .disabled(isFormatting || binding.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .help("只整理这一栏")
+                .help(language.t("Format this section only", "只整理这一栏"))
             }
 
             sectionInputField(section: section, binding: binding, expanded: expanded)
@@ -325,7 +339,7 @@ struct CompanyDetailView: View {
                 .padding(10)
                 .overlay(alignment: .topLeading) {
                     if binding.wrappedValue.isEmpty {
-                        Text(section.placeholder)
+                        Text(section.placeholder(language))
                             .font(.caption)
                             .foregroundStyle(AppTheme.muted)
                             .padding(18)
@@ -334,7 +348,7 @@ struct CompanyDetailView: View {
                 }
         } else {
             // 其它栏目：富文本，粘贴保留可点链接。
-            RichTextEditor(text: binding, placeholder: section.placeholder, minHeight: boxHeight)
+            RichTextEditor(text: binding, placeholder: section.placeholder(language), minHeight: boxHeight)
                 .padding(6)
         }
     }
@@ -345,7 +359,7 @@ struct CompanyDetailView: View {
     private func repoCard(_ company: Company) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
-                Text("代码仓库")
+                Text(language.t("Code repo", "代码仓库"))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(AppTheme.textSecondary)
                 Spacer(minLength: 0)
@@ -360,7 +374,7 @@ struct CompanyDetailView: View {
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.hoverCue)
-                    .help("换一个文件夹")
+                    .help(language.t("Choose another folder", "换一个文件夹"))
 
                     Button {
                         company.codeRepoPath = nil
@@ -373,7 +387,7 @@ struct CompanyDetailView: View {
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.hoverCue)
-                    .help("清除")
+                    .help(language.t("Clear", "清除"))
                 }
             }
 
@@ -430,16 +444,16 @@ struct CompanyDetailView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.hoverCueContained)
-            .help("用 Cursor 打开这个仓库")
+            .help(language.t("Open this repo in Cursor", "用 Cursor 打开这个仓库"))
         } else {
             VStack(spacing: 8) {
                 Image(systemName: "folder.badge.plus")
                     .font(.system(size: 22))
                     .foregroundStyle(repoDropTargeted ? AppTheme.accent : AppTheme.muted)
-                Text("把代码仓库文件夹拖进来")
+                Text(language.t("Drop a code repo folder here", "把代码仓库文件夹拖进来"))
                     .font(.caption)
                     .foregroundStyle(AppTheme.muted)
-                Button("选择文件夹…") { chooseRepoFolder(company) }
+                Button(language.t("Choose folder…", "选择文件夹…")) { chooseRepoFolder(company) }
                     .buttonStyle(.hoverCue)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(AppTheme.accent)
@@ -475,8 +489,8 @@ struct CompanyDetailView: View {
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
-        panel.prompt = "选择"
-        panel.message = "选择代码仓库根目录"
+        panel.prompt = language.t("Choose", "选择")
+        panel.message = language.t("Choose the code repo root folder", "选择代码仓库根目录")
         guard panel.runModal() == .OK, let url = panel.url else { return }
         setRepo(url, company: company)
     }
@@ -485,7 +499,10 @@ struct CompanyDetailView: View {
         var isDir: ObjCBool = false
         let exists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
         guard exists, isDir.boolValue else {
-            formatError = "请拖入一个文件夹（代码仓库根目录），不是单个文件。"
+            formatError = language.t(
+                "Please drop a folder (the repo root), not a single file.",
+                "请拖入一个文件夹（代码仓库根目录），不是单个文件。"
+            )
             return
         }
         company.codeRepoPath = url.path
@@ -495,7 +512,10 @@ struct CompanyDetailView: View {
 
     private func openInCursor(_ path: String) {
         guard FileManager.default.fileExists(atPath: path) else {
-            formatError = "找不到这个文件夹了，可能被移动或删除。重新指定一个吧。"
+            formatError = language.t(
+                "That folder is gone — it may have moved or been deleted. Pick another.",
+                "找不到这个文件夹了，可能被移动或删除。重新指定一个吧。"
+            )
             return
         }
         let task = Process()
@@ -504,13 +524,19 @@ struct CompanyDetailView: View {
         task.terminationHandler = { proc in
             guard proc.terminationStatus != 0 else { return }
             DispatchQueue.main.async {
-                formatError = "打不开 Cursor。确认已经安装了 Cursor 应用。"
+                formatError = language.t(
+                    "Couldn’t open Cursor. Make sure the Cursor app is installed.",
+                    "打不开 Cursor。确认已经安装了 Cursor 应用。"
+                )
             }
         }
         do {
             try task.run()
         } catch {
-            formatError = "打不开 Cursor：\(error.localizedDescription)"
+            formatError = language.t(
+                "Couldn’t open Cursor: \(error.localizedDescription)",
+                "打不开 Cursor：\(error.localizedDescription)"
+            )
         }
     }
 
@@ -615,7 +641,10 @@ struct CompanyDetailView: View {
         let text = textBinding(for: section, company: company).wrappedValue
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         guard let apiKey = APIKeyStore.load(), !apiKey.isEmpty else {
-            formatError = "请先在设置里填写 DeepSeek API Key"
+            formatError = language.t(
+                "Add your DeepSeek API Key in Settings first",
+                "请先在设置里填写 DeepSeek API Key"
+            )
             return
         }
         isFormatting = true
@@ -639,13 +668,17 @@ struct CompanyDetailView: View {
                 RichTextStore.storeModelResult(result, isCode: section.isCode)
             application?.lastUpdated = Date()
             try modelContext.save()
-            formatNotice = "已整理「\(section.title)」"
+            let sectionTitle = section.title(language)
+            formatNotice = language.t(
+                "Formatted “\(sectionTitle)”",
+                "已整理「\(sectionTitle)」"
+            )
             AgentTraceStore.append(
                 AgentTraceRecord(
                     startedAt: startedAt,
                     endedAt: Date(),
                     kind: "format",
-                    userMessage: "整理栏目 \(section.title) @ \(company.name)",
+                    userMessage: "整理栏目 \(sectionTitle) @ \(company.name)",
                     rawModelContent: result,
                     assistantMessage: formatNotice
                 )
@@ -655,7 +688,7 @@ struct CompanyDetailView: View {
             AgentTraceStore.append(
                 AgentTraceRecord(
                     kind: "format",
-                    userMessage: "整理栏目 \(section.title) @ \(company.name)",
+                    userMessage: "整理栏目 \(section.title(language)) @ \(company.name)",
                     error: error.localizedDescription
                 )
             )
@@ -666,7 +699,10 @@ struct CompanyDetailView: View {
     private func formatAllWithAI() async {
         guard let company else { return }
         guard let apiKey = APIKeyStore.load(), !apiKey.isEmpty else {
-            formatError = "请先在设置里填写 DeepSeek API Key"
+            formatError = language.t(
+                "Add your DeepSeek API Key in Settings first",
+                "请先在设置里填写 DeepSeek API Key"
+            )
             return
         }
         isFormatting = true
@@ -687,20 +723,24 @@ struct CompanyDetailView: View {
                 )
                 textBinding(for: section, company: company).wrappedValue =
                     RichTextStore.storeModelResult(result, isCode: section.isCode)
+                let sectionTitle = section.title(language)
                 AgentTraceStore.append(
                     AgentTraceRecord(
                         startedAt: startedAt,
                         endedAt: Date(),
                         kind: "format",
-                        userMessage: "整理栏目 \(section.title) @ \(company.name)",
+                        userMessage: "整理栏目 \(sectionTitle) @ \(company.name)",
                         rawModelContent: result,
-                        assistantMessage: "已整理「\(section.title)」"
+                        assistantMessage: language.t(
+                            "Formatted “\(sectionTitle)”",
+                            "已整理「\(sectionTitle)」"
+                        )
                     )
                 )
             }
             application?.lastUpdated = Date()
             try modelContext.save()
-            formatNotice = "已整理完成"
+            formatNotice = language.t("Formatting complete", "已整理完成")
         } catch {
             formatError = error.localizedDescription
             AgentTraceStore.append(

@@ -153,6 +153,7 @@ final class InterviewPanelSwipeSwitcher: ObservableObject {
 struct DashboardView: View {
     @EnvironmentObject private var navigation: NavigationStore
     @EnvironmentObject private var chat: ChatViewModel
+    @EnvironmentObject private var language: LanguageStore
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Application.lastUpdated, order: .reverse) private var applications: [Application]
     @Query private var stageNodes: [StageNode]
@@ -251,10 +252,10 @@ struct DashboardView: View {
 
         var label: String {
             switch self {
-            case .rejected: return "拒绝"
-            case .offer: return "Offer"
-            case .inProgress: return "进行中"
-            case .notStarted: return "未开始"
+            case .rejected: return L10n.t("Rejected", "拒绝")
+            case .offer: return L10n.t("Offer", "Offer")
+            case .inProgress: return L10n.t("In progress", "进行中")
+            case .notStarted: return L10n.t("Not started", "未开始")
             }
         }
 
@@ -394,24 +395,29 @@ struct DashboardView: View {
         .scrollDisabled(hoveringInterviewPanel || hoveringTimeline)
         .background(Color.clear)
         .confirmationDialog(
-            pendingDeleteCompany.map { "删除「\($0.name)」？" } ?? "删除公司",
+            pendingDeleteCompany.map {
+                language.t("Delete \"\($0.name)\"?", "删除「\($0.name)」？")
+            } ?? language.t("Delete company", "删除公司"),
             isPresented: Binding(
                 get: { pendingDeleteCompany != nil },
                 set: { if !$0 { pendingDeleteCompany = nil } }
             ),
             titleVisibility: .visible
         ) {
-            Button("删除整家公司", role: .destructive) {
+            Button(language.t("Delete entire company", "删除整家公司"), role: .destructive) {
                 if let company = pendingDeleteCompany {
                     deleteOpportunityCompany(company)
                 }
                 pendingDeleteCompany = nil
             }
-            Button("取消", role: .cancel) {
+            Button(language.t("Cancel", "取消"), role: .cancel) {
                 pendingDeleteCompany = nil
             }
         } message: {
-            Text("会删掉该公司的投递、面试和时间线。助手也会记一笔。")
+            Text(language.t(
+                "This deletes the company’s applications, interviews, and timeline. The assistant will also note it.",
+                "会删掉该公司的投递、面试和时间线。助手也会记一笔。"
+            ))
         }
     }
 
@@ -430,8 +436,14 @@ struct DashboardView: View {
         modelContext.delete(company)
         try? modelContext.save()
         chat.recordLocalEdit(
-            userText: "【机会列表】删除公司「\(name)」",
-            assistantText: "已删除 \(name) 的全部记录。"
+            userText: language.t(
+                "[Opportunities] Delete company \"\(name)\"",
+                "【机会列表】删除公司「\(name)」"
+            ),
+            assistantText: language.t(
+                "Deleted all records for \(name).",
+                "已删除 \(name) 的全部记录。"
+            )
         )
     }
 
@@ -489,10 +501,10 @@ struct DashboardView: View {
                     Image(systemName: "text.book.closed")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(AppTheme.accent)
-                    Text("日志")
+                    Text(language.t("Journal", "日志"))
                         .font(.headline)
                         .foregroundStyle(AppTheme.textPrimary)
-                    Text("最近三天")
+                    Text(language.t("Last 3 days", "最近三天"))
                         .font(.caption)
                         .foregroundStyle(AppTheme.muted)
                     Spacer()
@@ -502,7 +514,10 @@ struct DashboardView: View {
                 }
 
                 if recentDays.isEmpty {
-                    Text("还没记录，点进来给今天打个 tag。")
+                    Text(language.t(
+                        "Nothing yet — tap in to tag today.",
+                        "还没记录，点进来给今天打个 tag。"
+                    ))
                         .font(.caption)
                         .foregroundStyle(AppTheme.muted)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -526,7 +541,7 @@ struct DashboardView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .help("打开日志")
+        .help(language.t("Open journal", "打开日志"))
     }
 
     // MARK: - 待办卡（首页右侧）
@@ -555,11 +570,11 @@ struct DashboardView: View {
                     Image(systemName: "checklist")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(AppTheme.accent)
-                    Text("待办")
+                    Text(language.t("Todos", "待办"))
                         .font(.headline)
                         .foregroundStyle(AppTheme.textPrimary)
                     if !active.isEmpty {
-                        Text("\(active.count) 件")
+                        Text(language.t("\(active.count) items", "\(active.count) 件"))
                             .font(.caption)
                             .foregroundStyle(AppTheme.muted)
                     }
@@ -571,10 +586,13 @@ struct DashboardView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help("打开待办清单")
+            .help(language.t("Open todo list", "打开待办清单"))
 
             if shown.isEmpty {
-                Text("没有待办，点进去加一条「我要做的事」。")
+                Text(language.t(
+                    "No todos — open to add something to do.",
+                    "没有待办，点进去加一条「我要做的事」。"
+                ))
                     .font(.caption)
                     .foregroundStyle(AppTheme.muted)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -585,7 +603,10 @@ struct DashboardView: View {
                     }
                 }
                 if active.count > shown.count {
-                    Text("还有 \(active.count - shown.count) 件…")
+                    Text(language.t(
+                        "\(active.count - shown.count) more…",
+                        "还有 \(active.count - shown.count) 件…"
+                    ))
                         .font(.caption)
                         .foregroundStyle(AppTheme.muted)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -612,7 +633,7 @@ struct DashboardView: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.hoverCue)
-            .help("勾选完成")
+            .help(language.t("Mark done", "勾选完成"))
 
             Text(todo.priorityValue.label)
                 .font(.system(size: 10, weight: .heavy, design: .rounded))
@@ -702,7 +723,7 @@ struct DashboardView: View {
             HStack(alignment: .top, spacing: gap) {
                 TimelineStripView(
                     events: TimelineDisplayEvent.fromNodes(stageNodes),
-                    title: "时间线",
+                    title: language.t("Timeline", "时间线"),
                     onExpandedChange: { expanded in
                         withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
                             timelineExpanded = expanded
@@ -730,7 +751,9 @@ struct DashboardView: View {
             HStack(alignment: .center, spacing: 8) {
                 ZStack(alignment: .leading) {
                     HStack(spacing: 6) {
-                        Text(showPastInterviews ? "过去的面试" : "接下来的面试")
+                        Text(showPastInterviews
+                              ? language.t("Past interviews", "过去的面试")
+                              : language.t("Upcoming interviews", "接下来的面试"))
                             .font(.system(size: 15, weight: .semibold, design: .rounded))
                             .foregroundStyle(AppTheme.textSecondary)
                         if !visibleInterviews.isEmpty {
@@ -761,12 +784,14 @@ struct DashboardView: View {
                         .background(accent.opacity(0.14), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
                 .buttonStyle(.hoverCueContained)
-                .help("打开日历")
+                .help(language.t("Open calendar", "打开日历"))
             }
 
             ZStack {
                 if visibleInterviews.isEmpty {
-                    Text(showPastInterviews ? "还没有过去的面试。" : "还没有即将到来的面试。")
+                    Text(showPastInterviews
+                          ? language.t("No past interviews yet.", "还没有过去的面试。")
+                          : language.t("No upcoming interviews yet.", "还没有即将到来的面试。"))
                         .font(.caption)
                         .foregroundStyle(AppTheme.muted)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -970,7 +995,7 @@ struct DashboardView: View {
 
     private func interviewTimeLabel(_ node: StageNode) -> String {
         // 没记录钟点的节点存的是中午 12 点，不能当成真实时间显示。
-        guard node.hasTime else { return "时间待定" }
+        guard node.hasTime else { return language.t("Time TBD", "时间待定") }
         return node.date.formatted(.dateTime.hour().minute())
     }
 
@@ -1005,7 +1030,7 @@ struct DashboardView: View {
         let panelHeight = contentHeight + 62
 
         return HStack(alignment: .top, spacing: 16) {
-            DashboardCard(title: "机会分布") {
+            DashboardCard(title: language.t("Opportunity mix", "机会分布")) {
                 if applications.isEmpty {
                     emptyHint
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -1015,12 +1040,12 @@ struct DashboardView: View {
                         let isHovered = hoveredCompanySliceID == item.id
                         // 每家公司一等份，沿环排开；悬停时外径略伸，扇区略放大。
                         SectorMark(
-                            angle: .value("公司", 1),
+                            angle: .value(language.t("Company", "公司"), 1),
                             innerRadius: .ratio(0.58),
                             outerRadius: .ratio(isHovered ? 0.98 : 0.94),
                             angularInset: isHovered ? 1.0 : 1.5
                         )
-                        .foregroundStyle(by: .value("状态", item.bucket.label))
+                        .foregroundStyle(by: .value(language.t("Status", "状态"), item.bucket.label))
                         .cornerRadius(isHovered ? 5 : 4)
                         .opacity(hoveredCompanySliceID == nil || isHovered ? 1 : 0.82)
                         .annotation(position: .overlay) {
@@ -1049,7 +1074,7 @@ struct DashboardView: View {
                                     Text("\(slices.count)")
                                         .font(.system(size: 30, weight: .bold, design: .rounded))
                                         .foregroundStyle(AppTheme.textPrimary)
-                                    Text("家公司")
+                                    Text(language.t("companies", "家公司"))
                                         .font(.caption)
                                         .foregroundStyle(AppTheme.muted)
                                 }
@@ -1099,9 +1124,12 @@ struct DashboardView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
 
-            DashboardCard(title: "想去程度") {
+            DashboardCard(title: language.t("Desire level", "想去程度")) {
                 if !hasDesireData {
-                    Text("还没有想去程度。聊天里说「最想去 Moonshot，想去 5 分」就会写在对应宽柱里。")
+                    Text(language.t(
+                        "No desire levels yet. Tell chat “I want Moonshot most — 5 out of 5” and it will show in that column.",
+                        "还没有想去程度。聊天里说「最想去 Moonshot，想去 5 分」就会写在对应宽柱里。"
+                    ))
                         .font(.caption)
                         .foregroundStyle(AppTheme.muted)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -1147,7 +1175,7 @@ struct DashboardView: View {
 
             HStack(spacing: 10) {
                 ForEach(1...5, id: \.self) { desire in
-                    Text("\(desire)分")
+                    Text(language.t("\(desire)", "\(desire)分"))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(desire == 5 ? AppTheme.accent : AppTheme.muted)
                         .frame(maxWidth: .infinity)
@@ -1203,22 +1231,22 @@ struct DashboardView: View {
     }
 
     private var opportunityColumnsSection: some View {
-        DashboardCard(title: "机会列表") {
+        DashboardCard(title: language.t("Opportunities", "机会列表")) {
             HStack(alignment: .top, spacing: 14) {
                 opportunityColumn(
-                    title: "未开始",
+                    title: language.t("Not started", "未开始"),
                     items: notStarted,
                     accent: AppTheme.accent,
                     embedded: true
                 )
                 opportunityColumn(
-                    title: "进行中",
+                    title: language.t("In progress", "进行中"),
                     items: inProgress,
                     accent: AppTheme.orange,
                     embedded: true
                 )
                 opportunityColumn(
-                    title: "已结束",
+                    title: language.t("Closed", "已结束"),
                     items: closed,
                     accent: Color.white.opacity(0.35),
                     embedded: true
@@ -1243,7 +1271,7 @@ struct DashboardView: View {
             }
 
             if items.isEmpty {
-                Text("暂无")
+                Text(language.t("None", "暂无"))
                     .font(.caption)
                     .foregroundStyle(AppTheme.muted)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -1257,7 +1285,7 @@ struct DashboardView: View {
                             }
                         } label: {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(app.company?.name ?? "未知公司")
+                                Text(app.company?.name ?? language.t("Unknown company", "未知公司"))
                                     .font(.subheadline.weight(.medium))
                                     .foregroundStyle(AppTheme.textPrimary)
                                     .lineLimit(2)
@@ -1281,7 +1309,7 @@ struct DashboardView: View {
                         .buttonStyle(.hoverCueText)
                         .contextMenu {
                             if let company = app.company {
-                                Button("删除这家公司…", role: .destructive) {
+                                Button(language.t("Delete this company…", "删除这家公司…"), role: .destructive) {
                                     pendingDeleteCompany = company
                                 }
                             }
@@ -1323,7 +1351,10 @@ struct DashboardView: View {
     }
 
     private var emptyHint: some View {
-        Text("暂无数据。底部聊天框说一句，就会自动出现在这里。")
+        Text(language.t(
+            "No data yet. Say something in the chat below and it will show up here.",
+            "暂无数据。底部聊天框说一句，就会自动出现在这里。"
+        ))
             .font(.caption)
             .foregroundStyle(AppTheme.muted)
     }

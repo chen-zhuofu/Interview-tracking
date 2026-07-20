@@ -8,12 +8,19 @@ struct ReadingNotesView: View {
 
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var navigation: NavigationStore
+    @EnvironmentObject private var language: LanguageStore
     @Query private var items: [ReadingItem]
 
-    private enum Mode: String, CaseIterable {
-        case edit = "编辑"
-        case split = "对照"
-        case preview = "预览"
+    private enum Mode: CaseIterable, Hashable {
+        case edit, split, preview
+
+        func label(_ language: LanguageStore) -> String {
+            switch self {
+            case .edit: return L10n.t("Edit", "编辑")
+            case .split: return L10n.t("Split", "对照")
+            case .preview: return L10n.t("Preview", "预览")
+            }
+        }
     }
 
     @State private var text = ""
@@ -37,7 +44,10 @@ struct ReadingNotesView: View {
                     statusBar
                 }
             } else {
-                ContentUnavailableView("收藏不存在", systemImage: "questionmark.circle")
+                ContentUnavailableView(
+                    language.t("Item not found", "收藏不存在"),
+                    systemImage: "questionmark.circle"
+                )
             }
         }
         // Notes are wall-to-wall text; keep this page nearly opaque for readability.
@@ -88,21 +98,31 @@ struct ReadingNotesView: View {
                     Button {
                         openSource(item)
                     } label: {
-                        Label(item.fileName != nil ? "打开 PDF" : "打开原文", systemImage: "arrow.up.forward.square")
+                        Label(
+                            item.fileName != nil
+                            ? language.t("Open PDF", "打开 PDF")
+                            : language.t("Open source", "打开原文"),
+                            systemImage: "arrow.up.forward.square"
+                        )
                             .font(.system(size: 12, weight: .semibold))
                     }
-                    .help("在默认阅读器 / 浏览器中打开，边看边记")
+                    .help(language.t("Open in default reader / browser while you take notes", "在默认阅读器 / 浏览器中打开，边看边记"))
 
                     Button {
                         item.isRead.toggle()
                         try? modelContext.save()
                     } label: {
-                        Label(item.isRead ? "已读" : "标已读", systemImage: item.isRead ? "checkmark.circle.fill" : "circle")
+                        Label(
+                            item.isRead
+                            ? language.t("Read", "已读")
+                            : language.t("Mark read", "标已读"),
+                            systemImage: item.isRead ? "checkmark.circle.fill" : "circle"
+                        )
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(item.isRead ? AppTheme.green : AppTheme.textSecondary)
                     }
 
-                    Button("编辑信息…") { editingMeta = true }
+                    Button(language.t("Edit info…", "编辑信息…")) { editingMeta = true }
                         .font(.system(size: 12, weight: .semibold))
                 }
                 .buttonStyle(.bordered)
@@ -112,7 +132,7 @@ struct ReadingNotesView: View {
             HStack(spacing: 10) {
                 Picker("", selection: $mode) {
                     ForEach(Mode.allCases, id: \.self) { mode in
-                        Text(mode.rawValue).tag(mode)
+                        Text(mode.label(language)).tag(mode)
                     }
                 }
                 .pickerStyle(.segmented)
@@ -124,7 +144,7 @@ struct ReadingNotesView: View {
                         text = Self.template(for: item.readingKind)
                         persist()
                     } label: {
-                        Label("插入笔记模板", systemImage: "square.grid.2x2")
+                        Label(language.t("Insert note template", "插入笔记模板"), systemImage: "square.grid.2x2")
                             .font(.system(size: 12, weight: .semibold))
                     }
                     .buttonStyle(.bordered)
@@ -133,7 +153,10 @@ struct ReadingNotesView: View {
 
                 Spacer()
 
-                Text("支持 Markdown：# 标题 · **粗体** · - 列表 · > 引用 · ```代码```")
+                Text(language.t(
+                    "Markdown: # heading · **bold** · - list · > quote · ```code```",
+                    "支持 Markdown：# 标题 · **粗体** · - 列表 · > 引用 · ```代码```"
+                ))
                     .font(.caption2)
                     .foregroundStyle(AppTheme.muted)
             }
@@ -197,11 +220,14 @@ struct ReadingNotesView: View {
 
     private var statusBar: some View {
         HStack(spacing: 14) {
-            Text("\(text.count) 字")
+            Text(language.t("\(text.count) chars", "\(text.count) 字"))
                 .font(.caption2.monospacedDigit())
             if let lastSavedAt {
                 Label(
-                    "已自动保存 \(lastSavedAt.formatted(.dateTime.hour().minute().second()))",
+                    language.t(
+                        "Autosaved \(lastSavedAt.formatted(.dateTime.hour().minute().second()))",
+                        "已自动保存 \(lastSavedAt.formatted(.dateTime.hour().minute().second()))"
+                    ),
                     systemImage: "checkmark.circle"
                 )
                 .font(.caption2)
@@ -209,7 +235,10 @@ struct ReadingNotesView: View {
             }
             Spacer()
             if let updated = item?.notesUpdatedAt {
-                Text("笔记更新于 \(updated.formatted(.dateTime.month().day().hour().minute()))")
+                Text(language.t(
+                    "Notes updated \(updated.formatted(.dateTime.month().day().hour().minute()))",
+                    "笔记更新于 \(updated.formatted(.dateTime.month().day().hour().minute()))"
+                ))
                     .font(.caption2)
             }
         }
@@ -245,40 +274,40 @@ struct ReadingNotesView: View {
         case .paper:
             return """
             # TL;DR
-            > 一句话：这篇论文解决什么问题，结论是什么
+            > \(L10n.t("One line: what problem this paper solves, and the conclusion", "一句话：这篇论文解决什么问题，结论是什么"))
 
-            ## 方法
+            ## \(L10n.t("Method", "方法"))
             - 
 
-            ## 实验 & 结果
+            ## \(L10n.t("Experiments & results", "实验 & 结果"))
             - 
 
-            ## 我的想法
+            ## \(L10n.t("My thoughts", "我的想法"))
             - 
 
-            ## 值得追的参考
+            ## \(L10n.t("References to chase", "值得追的参考"))
             - 
             """
         case .blog:
             return """
-            # 核心观点
+            # \(L10n.t("Core idea", "核心观点"))
             > 
 
-            ## 论据 / 例子
+            ## \(L10n.t("Evidence / examples", "论据 / 例子"))
             - 
 
-            ## 我的想法
+            ## \(L10n.t("My thoughts", "我的想法"))
             - 
             """
         case .video:
             return """
-            # 主要内容
+            # \(L10n.t("Main content", "主要内容"))
             > 
 
-            ## 时间点标记
+            ## \(L10n.t("Timestamps", "时间点标记"))
             - 00:00 
 
-            ## 我的想法
+            ## \(L10n.t("My thoughts", "我的想法"))
             - 
             """
         }
@@ -290,6 +319,8 @@ struct ReadingNotesView: View {
 /// 轻量 Markdown 渲染：标题 / 列表 / 引用 / 代码块 / 分割线 + 行内粗斜体代码链接。
 struct MarkdownPreview: View {
     let text: String
+
+    @EnvironmentObject private var language: LanguageStore
 
     private enum Block: Identifiable {
         case heading(level: Int, text: String)
@@ -307,7 +338,7 @@ struct MarkdownPreview: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                Text("（右侧预览：开始写点什么吧）")
+                Text(language.t("(Preview: start writing something)", "（右侧预览：开始写点什么吧）"))
                     .font(.caption)
                     .foregroundStyle(AppTheme.muted)
             } else {

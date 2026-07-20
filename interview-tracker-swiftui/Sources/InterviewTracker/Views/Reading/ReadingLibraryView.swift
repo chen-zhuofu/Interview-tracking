@@ -6,13 +6,11 @@ import AppKit
 struct ReadingLibraryView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var navigation: NavigationStore
+    @EnvironmentObject private var language: LanguageStore
     @Query(sort: \ReadingItem.createdAt, order: .reverse) private var items: [ReadingItem]
 
-    private enum KindFilter: String, CaseIterable {
-        case all = "全部"
-        case paper = "论文"
-        case blog = "博客"
-        case video = "视频"
+    private enum KindFilter: CaseIterable, Hashable {
+        case all, paper, blog, video
 
         var kind: ReadingKind? {
             switch self {
@@ -20,6 +18,15 @@ struct ReadingLibraryView: View {
             case .paper: return .paper
             case .blog: return .blog
             case .video: return .video
+            }
+        }
+
+        func label(_ language: LanguageStore) -> String {
+            switch self {
+            case .all: return language.t("All", "全部")
+            case .paper: return language.t("Paper", "论文")
+            case .blog: return language.t("Blog", "博客")
+            case .video: return language.t("Video", "视频")
             }
         }
     }
@@ -100,7 +107,7 @@ struct ReadingLibraryView: View {
                         Image(systemName: "arrow.down.doc.fill")
                             .font(.system(size: 34))
                             .foregroundStyle(AppTheme.accent)
-                        Text("松手把 PDF 加入论文收藏")
+                        Text(language.t("Drop to add PDF to library", "松手把 PDF 加入论文收藏"))
                             .font(.headline)
                             .foregroundStyle(AppTheme.textPrimary)
                     }
@@ -116,17 +123,20 @@ struct ReadingLibraryView: View {
     private var header: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 8) {
-                Text("阅读收藏")
+                Text(language.t("Reading library", "阅读收藏"))
                     .font(.system(size: 34, weight: .bold, design: .rounded))
                     .foregroundStyle(AppTheme.textPrimary)
-                Text("论文 PDF、tech blog、YouTube 都丢进来，读完打个勾，笔记就写在旁边")
+                Text(language.t(
+                    "Drop in paper PDFs, tech blogs, and YouTube — check off when read, jot notes beside them",
+                    "论文 PDF、tech blog、YouTube 都丢进来，读完打个勾，笔记就写在旁边"
+                ))
                     .font(.system(size: 14, weight: .medium, design: .rounded))
                     .foregroundStyle(AppTheme.textSecondary)
             }
             Spacer()
             HStack(spacing: 14) {
-                statBadge(value: items.count, label: "收藏", color: AppTheme.accent)
-                statBadge(value: unreadCount, label: "未读", color: AppTheme.orange)
+                statBadge(value: items.count, label: language.t("Saved", "收藏"), color: AppTheme.accent)
+                statBadge(value: unreadCount, label: language.t("Unread", "未读"), color: AppTheme.orange)
             }
         }
     }
@@ -153,14 +163,14 @@ struct ReadingLibraryView: View {
         HStack(spacing: 12) {
             Picker("", selection: $kindFilter) {
                 ForEach(KindFilter.allCases, id: \.self) { filter in
-                    Text(filter.rawValue).tag(filter)
+                    Text(filter.label(language)).tag(filter)
                 }
             }
             .pickerStyle(.segmented)
             .frame(width: 280)
             .labelsHidden()
 
-            Toggle("只看未读", isOn: $unreadOnly)
+            Toggle(language.t("Unread only", "只看未读"), isOn: $unreadOnly)
                 .toggleStyle(.checkbox)
                 .foregroundStyle(AppTheme.textSecondary)
 
@@ -168,7 +178,7 @@ struct ReadingLibraryView: View {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(AppTheme.muted)
-                TextField("搜标题 / 域名 / 标签 / 备注", text: $searchText)
+                TextField(language.t("Search title / domain / tags / notes", "搜标题 / 域名 / 标签 / 备注"), text: $searchText)
                     .textFieldStyle(.plain)
                     .foregroundStyle(AppTheme.textPrimary)
             }
@@ -186,7 +196,7 @@ struct ReadingLibraryView: View {
             Button {
                 showAddSheet = true
             } label: {
-                Label("添加收藏", systemImage: "plus")
+                Label(language.t("Add", "添加收藏"), systemImage: "plus")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.black)
                     .padding(.horizontal, 14)
@@ -195,7 +205,7 @@ struct ReadingLibraryView: View {
             }
             .buttonStyle(.hoverCue)
             .keyboardShortcut("n", modifiers: .command)
-            .help("添加论文或博客（⌘N）")
+            .help(language.t("Add a paper or blog (⌘N)", "添加论文或博客（⌘N）"))
         }
     }
 
@@ -249,12 +259,17 @@ struct ReadingLibraryView: View {
             Image(systemName: "books.vertical")
                 .font(.system(size: 36, weight: .light))
                 .foregroundStyle(AppTheme.muted)
-            Text(items.isEmpty ? "还没有收藏" : "没有匹配的收藏")
+            Text(items.isEmpty
+                 ? language.t("Nothing saved yet", "还没有收藏")
+                 : language.t("No matching items", "没有匹配的收藏"))
                 .font(.headline)
                 .foregroundStyle(AppTheme.textSecondary)
             Text(items.isEmpty
-                 ? "把 PDF 直接拖进这个页面，或点「添加收藏」（⌘N）贴博客 / YouTube 链接。"
-                 : "换个筛选条件或搜索词试试。")
+                 ? language.t(
+                    "Drop a PDF onto this page, or tap Add (⌘N) to paste a blog / YouTube link.",
+                    "把 PDF 直接拖进这个页面，或点「添加收藏」（⌘N）贴博客 / YouTube 链接。"
+                 )
+                 : language.t("Try a different filter or search.", "换个筛选条件或搜索词试试。"))
                 .font(.caption)
                 .foregroundStyle(AppTheme.muted)
         }
@@ -333,6 +348,7 @@ private struct ReadingCard: View {
     let onDelete: () -> Void
     let onTagTap: (String) -> Void
 
+    @EnvironmentObject private var language: LanguageStore
     @State private var hovering = false
 
     var body: some View {
@@ -348,10 +364,10 @@ private struct ReadingCard: View {
                                 Circle()
                                     .fill(AppTheme.orange)
                                     .frame(width: 6, height: 6)
-                                    .help("未读")
+                                    .help(language.t("Unread", "未读"))
                             }
                         }
-                        Text(item.domain.isEmpty ? "链接" : item.domain)
+                        Text(item.domain.isEmpty ? language.t("Link", "链接") : item.domain)
                             .font(.caption2)
                             .foregroundStyle(AppTheme.muted)
                             .lineLimit(1)
@@ -365,7 +381,9 @@ private struct ReadingCard: View {
                             .foregroundStyle(item.hasNotes ? AppTheme.accent : AppTheme.muted)
                     }
                     .buttonStyle(.hoverCue)
-                    .help(item.hasNotes ? "查看 / 编辑阅读笔记" : "写阅读笔记")
+                    .help(item.hasNotes
+                          ? language.t("View / edit reading notes", "查看 / 编辑阅读笔记")
+                          : language.t("Write reading notes", "写阅读笔记"))
 
                     Button(action: onToggleRead) {
                         Image(systemName: item.isRead ? "checkmark.circle.fill" : "circle")
@@ -373,7 +391,9 @@ private struct ReadingCard: View {
                             .foregroundStyle(item.isRead ? AppTheme.green : AppTheme.muted)
                     }
                     .buttonStyle(.hoverCue)
-                    .help(item.isRead ? "标为未读" : "标为已读")
+                    .help(item.isRead
+                          ? language.t("Mark unread", "标为未读")
+                          : language.t("Mark read", "标为已读"))
                 }
 
                 Text(item.title)
@@ -429,27 +449,31 @@ private struct ReadingCard: View {
             }
         }
         .contextMenu {
-            Button(item.fileName != nil ? "打开 PDF" : "打开链接", action: onOpen)
-            Button("阅读笔记…", action: onNotes)
-            Button(item.isRead ? "标为未读" : "标为已读", action: onToggleRead)
-            Button("编辑…", action: onEdit)
+            Button(item.fileName != nil
+                   ? language.t("Open PDF", "打开 PDF")
+                   : language.t("Open link", "打开链接"), action: onOpen)
+            Button(language.t("Reading notes…", "阅读笔记…"), action: onNotes)
+            Button(item.isRead
+                   ? language.t("Mark unread", "标为未读")
+                   : language.t("Mark read", "标为已读"), action: onToggleRead)
+            Button(language.t("Edit…", "编辑…"), action: onEdit)
             if item.fileName != nil {
-                Button("在 Finder 中显示") {
+                Button(language.t("Show in Finder", "在 Finder 中显示")) {
                     if let fileName = item.fileName {
                         NSWorkspace.shared.activateFileViewerSelecting([AttachmentStore.url(for: fileName)])
                     }
                 }
             }
             if !item.urlString.isEmpty {
-                Button("复制链接") {
+                Button(language.t("Copy link", "复制链接")) {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(item.urlString, forType: .string)
                 }
             }
             Divider()
-            Button("删除", role: .destructive, action: onDelete)
+            Button(language.t("Delete", "删除"), role: .destructive, action: onDelete)
         }
-        .help("点击打开 · 右键更多操作")
+        .help(language.t("Click to open · right-click for more", "点击打开 · 右键更多操作"))
     }
 
     private var kindBadge: some View {
@@ -506,6 +530,7 @@ struct ReadingItemFormSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var language: LanguageStore
 
     @State private var title = ""
     @State private var urlString = ""
@@ -527,10 +552,12 @@ struct ReadingItemFormSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(existing == nil ? "添加收藏" : "编辑收藏")
+            Text(existing == nil
+                 ? language.t("Add to library", "添加收藏")
+                 : language.t("Edit item", "编辑收藏"))
                 .font(.headline)
 
-            Picker("类型", selection: $kind) {
+            Picker(language.t("Type", "类型"), selection: $kind) {
                 ForEach(ReadingKind.allCases, id: \.self) { kind in
                     Label(kind.label, systemImage: kind.icon).tag(kind)
                 }
@@ -544,11 +571,13 @@ struct ReadingItemFormSheet: View {
 
             HStack(spacing: 8) {
                 TextField(
-                    kind == .paper ? "链接（选了本地 PDF 可留空）" : "链接（https://…）",
+                    kind == .paper
+                    ? language.t("URL (optional if you picked a local PDF)", "链接（选了本地 PDF 可留空）")
+                    : language.t("URL (https://…)", "链接（https://…）"),
                     text: $urlString
                 )
                 .textFieldStyle(.roundedBorder)
-                Button("从剪贴板粘贴") {
+                Button(language.t("Paste from clipboard", "从剪贴板粘贴")) {
                     if let raw = NSPasteboard.general.string(forType: .string) {
                         urlString = raw.trimmingCharacters(in: .whitespacesAndNewlines)
                     }
@@ -556,14 +585,14 @@ struct ReadingItemFormSheet: View {
                 .controlSize(.small)
             }
 
-            TextField("标题", text: $title)
+            TextField(language.t("Title", "标题"), text: $title)
                 .textFieldStyle(.roundedBorder)
 
-            TextField("标签（逗号分隔，如 LLM, RLHF, Agent）", text: $tags)
+            TextField(language.t("Tags (comma-separated, e.g. LLM, RLHF, Agent)", "标签（逗号分隔，如 LLM, RLHF, Agent）"), text: $tags)
                 .textFieldStyle(.roundedBorder)
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("备注（为什么值得读 / 重点是什么）")
+                Text(language.t("Note (why it’s worth reading / key takeaway)", "备注（为什么值得读 / 重点是什么）"))
                     .font(.caption)
                     .foregroundStyle(AppTheme.muted)
                 TextEditor(text: $note)
@@ -576,9 +605,11 @@ struct ReadingItemFormSheet: View {
 
             HStack {
                 Spacer()
-                Button("取消") { dismiss() }
+                Button(language.t("Cancel", "取消")) { dismiss() }
                     .keyboardShortcut(.cancelAction)
-                Button(existing == nil ? "收藏" : "保存") {
+                Button(existing == nil
+                       ? language.t("Save", "收藏")
+                       : language.t("Save", "保存")) {
                     save()
                     dismiss()
                 }
@@ -602,19 +633,21 @@ struct ReadingItemFormSheet: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
             } else if storedFileName != nil {
-                Text("已存本地 PDF")
+                Text(language.t("Local PDF saved", "已存本地 PDF"))
                     .font(.caption)
                     .foregroundStyle(AppTheme.textPrimary)
             } else {
-                Text("还没选 PDF")
+                Text(language.t("No PDF selected", "还没选 PDF"))
                     .font(.caption)
                     .foregroundStyle(AppTheme.muted)
             }
             Spacer()
-            Button(hasPDF ? "换一个…" : "选择本地 PDF…") { pickPDF() }
+            Button(hasPDF
+                   ? language.t("Replace…", "换一个…")
+                   : language.t("Choose local PDF…", "选择本地 PDF…")) { pickPDF() }
                 .controlSize(.small)
             if hasPDF {
-                Button("移除") {
+                Button(language.t("Remove", "移除")) {
                     pickedPDF = nil
                     storedFileName = nil
                 }

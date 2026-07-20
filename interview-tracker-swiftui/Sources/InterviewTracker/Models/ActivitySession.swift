@@ -78,11 +78,11 @@ enum ActivityMood: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .tired: return "疲劳"
-        case .slightlyTired: return "略累"
-        case .normal: return "正常"
-        case .motivated: return "想做事"
-        case .energetic: return "精力旺盛"
+        case .tired: return L10n.t("Tired", "疲劳")
+        case .slightlyTired: return L10n.t("A bit tired", "略累")
+        case .normal: return L10n.t("Normal", "正常")
+        case .motivated: return L10n.t("Want to work", "想做事")
+        case .energetic: return L10n.t("Energetic", "精力旺盛")
         }
     }
 
@@ -93,15 +93,21 @@ enum ActivityMood: String, CaseIterable, Identifiable {
     }
 }
 
-/// 把秒数变成「X小时Y分」这样的中文时长。工具和界面共用。
+/// Duration like "1h 20m" / "1小时20分". Shared by UI and tools.
 enum ActivityDuration {
     static func label(_ seconds: TimeInterval) -> String {
         let total = max(0, Int(seconds))
         let hours = total / 3600
         let minutes = (total % 3600) / 60
-        if hours > 0 && minutes > 0 { return "\(hours)小时\(minutes)分" }
-        if hours > 0 { return "\(hours)小时" }
-        if minutes > 0 { return "\(minutes)分钟" }
-        return "不到1分钟"
+        if AppLanguage.current == .chinese {
+            if hours > 0 && minutes > 0 { return "\(hours)小时\(minutes)分" }
+            if hours > 0 { return "\(hours)小时" }
+            if minutes > 0 { return "\(minutes)分钟" }
+            return "不到1分钟"
+        }
+        if hours > 0 && minutes > 0 { return "\(hours)h \(minutes)m" }
+        if hours > 0 { return "\(hours)h" }
+        if minutes > 0 { return "\(minutes)m" }
+        return "<1m"
     }
 }

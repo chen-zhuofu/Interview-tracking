@@ -137,9 +137,9 @@ enum InterviewOutcome {
 
     var label: String {
         switch self {
-        case .passed: return "已通过"
-        case .failed: return "未通过"
-        case .pending: return "等结果"
+        case .passed: return L10n.t("Passed", "已通过")
+        case .failed: return L10n.t("Failed", "未通过")
+        case .pending: return L10n.t("Pending", "等结果")
         }
     }
 }

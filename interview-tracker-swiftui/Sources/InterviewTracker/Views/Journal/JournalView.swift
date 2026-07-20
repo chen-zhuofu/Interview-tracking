@@ -4,6 +4,7 @@ import SwiftData
 /// 日常记录页：今天的编辑器常驻在上面；过去的日子在下面，点一下就地展开来写。
 struct JournalView: View {
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var language: LanguageStore
     @Query(sort: \JournalEntry.day, order: .reverse) private var entries: [JournalEntry]
     @Query(sort: \JournalTag.sortOrder) private var tags: [JournalTag]
     @Query(sort: \InterviewInsight.updatedAt, order: .reverse) private var insights: [InterviewInsight]
@@ -73,15 +74,22 @@ struct JournalView: View {
     private var header: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 8) {
-                Text("日志")
+                Text(language.t("Journal", "日志"))
                     .font(.system(size: 34, weight: .bold, design: .rounded))
                     .foregroundStyle(AppTheme.textPrimary)
-                Text("点一个标签，就多一行；后面接着写今天做了什么")
+                Text(language.t(
+                    "Tap a tag to add a line, then write what you did today",
+                    "点一个标签，就多一行；后面接着写今天做了什么"
+                ))
                     .font(.system(size: 14, weight: .medium, design: .rounded))
                     .foregroundStyle(AppTheme.textSecondary)
             }
             Spacer()
-            statBadge(value: entries.filter { !$0.isEmpty }.count, label: "记录天数", color: AppTheme.accent)
+            statBadge(
+                value: entries.filter { !$0.isEmpty }.count,
+                label: language.t("Days logged", "记录天数"),
+                color: AppTheme.accent
+            )
         }
     }
 
@@ -108,7 +116,7 @@ struct JournalView: View {
     private var todaySection: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text("今天")
+                Text(language.t("Today", "今天"))
                     .font(.headline)
                     .foregroundStyle(AppTheme.textPrimary)
                 Text(JournalDateFormat.weekday(Date()))
@@ -118,12 +126,12 @@ struct JournalView: View {
                 Button {
                     showBackfill = true
                 } label: {
-                    Label("补记过去", systemImage: "calendar.badge.plus")
+                    Label(language.t("Backfill", "补记过去"), systemImage: "calendar.badge.plus")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(AppTheme.textSecondary)
                 }
                 .buttonStyle(.hoverCue)
-                .help("选一个过去的日期补写日志")
+                .help(language.t("Pick a past day to fill in", "选一个过去的日期补写日志"))
             }
 
             JournalEditorBody(
@@ -147,7 +155,7 @@ struct JournalView: View {
     private var insightSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .center, spacing: 8) {
-                Text("心得")
+                Text(language.t("Insights", "心得"))
                     .font(.headline)
                     .foregroundStyle(AppTheme.textPrimary)
                 Spacer()
@@ -157,17 +165,20 @@ struct JournalView: View {
                     try? modelContext.save()
                     expandedInsightIDs.insert(insight.id)
                 } label: {
-                    Label("写一条", systemImage: "square.and.pencil")
+                    Label(language.t("Write one", "写一条"), systemImage: "square.and.pencil")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(AppTheme.accent)
                 }
                 .buttonStyle(.hoverCue)
-                .help("新建一条心得")
+                .help(language.t("Create a new insight", "新建一条心得"))
             }
 
             let visible = insights.filter { !$0.isEmpty || expandedInsightIDs.contains($0.id) }
             if visible.isEmpty {
-                Text("随手记，或在聊天里说「帮我记一条心得」。")
+                Text(language.t(
+                    "Jot something down, or tell chat “save an insight for me.”",
+                    "随手记，或在聊天里说「帮我记一条心得」。"
+                ))
                     .font(.caption)
                     .foregroundStyle(AppTheme.muted)
                     .padding(.vertical, 8)
@@ -215,7 +226,7 @@ struct JournalView: View {
     private var historySection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 6) {
-                Text("回顾")
+                Text(language.t("History", "回顾"))
                     .font(.headline)
                     .foregroundStyle(AppTheme.textPrimary)
                 if !pastEntries.isEmpty {
@@ -227,7 +238,10 @@ struct JournalView: View {
 
             Group {
                 if pastEntries.isEmpty {
-                    Text("过去的日子还没记。点「补记过去」挑一天补上。")
+                    Text(language.t(
+                        "No past days yet. Tap “Backfill” to pick a day.",
+                        "过去的日子还没记。点「补记过去」挑一天补上。"
+                    ))
                         .font(.caption)
                         .foregroundStyle(AppTheme.muted)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -325,6 +339,7 @@ private struct InterviewInsightCard: View {
     @Binding var isExpanded: Bool
 
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var language: LanguageStore
     @State private var hovering = false
     @FocusState private var editing: Bool
 
@@ -341,7 +356,7 @@ private struct InterviewInsightCard: View {
                         .foregroundStyle(AppTheme.accent)
                         .padding(.top, 1)
                     if !isExpanded {
-                        Text(insight.body.isEmpty ? "（空）" : insight.body)
+                        Text(insight.body.isEmpty ? language.t("(empty)", "（空）") : insight.body)
                             .font(.caption)
                             .foregroundStyle(AppTheme.textSecondary)
                             .lineLimit(2)
@@ -359,7 +374,7 @@ private struct InterviewInsightCard: View {
             if isExpanded {
                 ZStack(alignment: .topLeading) {
                     if insight.body.isEmpty {
-                        Text("写点什么…")
+                        Text(language.t("Write something…", "写点什么…"))
                             .font(.system(size: 13))
                             .foregroundStyle(AppTheme.muted)
                             .padding(.horizontal, 5)
@@ -381,7 +396,7 @@ private struct InterviewInsightCard: View {
                     modelContext.delete(insight)
                     try? modelContext.save()
                 } label: {
-                    Text("删除")
+                    Text(language.t("Delete", "删除"))
                         .font(.caption)
                         .foregroundStyle(AppTheme.rose)
                 }
@@ -428,6 +443,7 @@ private struct JournalPastCard: View {
     let onDeleteTag: (JournalTag) -> Void
 
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var language: LanguageStore
     @State private var hovering = false
 
     var body: some View {
@@ -475,7 +491,7 @@ private struct JournalPastCard: View {
                     onDeleteTag: onDeleteTag
                 )
                 HStack {
-                    Button("删除这天", role: .destructive) {
+                    Button(language.t("Delete this day", "删除这天"), role: .destructive) {
                         modelContext.delete(entry)
                         try? modelContext.save()
                     }
@@ -506,6 +522,7 @@ struct JournalEditorBody: View {
     let onDeleteTag: (JournalTag) -> Void
 
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var language: LanguageStore
     @FocusState private var focusedLine: UUID?
 
     var body: some View {
@@ -530,11 +547,11 @@ struct JournalEditorBody: View {
                 }
                 .buttonStyle(.hoverCue)
                 .contextMenu {
-                    Button("删除标签「\(tag.name)」", role: .destructive) {
+                    Button(language.t("Delete tag “\(tag.name)”", "删除标签「\(tag.name)」"), role: .destructive) {
                         onDeleteTag(tag)
                     }
                 }
-                .help("点一下加一行「\(tag.name)」")
+                .help(language.t("Tap to add a “\(tag.name)” line", "点一下加一行「\(tag.name)」"))
             }
 
             Button {
@@ -543,7 +560,7 @@ struct JournalEditorBody: View {
                 HStack(spacing: 4) {
                     Image(systemName: "plus")
                         .font(.system(size: 10, weight: .bold))
-                    Text("添加标签")
+                    Text(language.t("Add tag", "添加标签"))
                         .font(.system(size: 13, weight: .semibold))
                 }
                 .foregroundStyle(AppTheme.muted)
@@ -560,7 +577,10 @@ struct JournalEditorBody: View {
     @ViewBuilder
     private var linesArea: some View {
         if entry.lines.isEmpty {
-            Text("点上面的标签，加一行开始记。")
+            Text(language.t(
+                "Tap a tag above to add a line and start writing.",
+                "点上面的标签，加一行开始记。"
+            ))
                 .font(.caption)
                 .foregroundStyle(AppTheme.muted)
                 .padding(.vertical, 6)
@@ -583,7 +603,7 @@ struct JournalEditorBody: View {
                 .background(AppTheme.accent, in: Capsule())
                 .padding(.top, 2)
 
-            TextField("写点什么…", text: textBinding(line.id), axis: .vertical)
+            TextField(language.t("Write something…", "写点什么…"), text: textBinding(line.id), axis: .vertical)
                 .textFieldStyle(.plain)
                 .font(.system(size: 13))
                 .foregroundStyle(AppTheme.textPrimary)
@@ -599,7 +619,7 @@ struct JournalEditorBody: View {
                     .foregroundStyle(AppTheme.muted)
             }
             .buttonStyle(.hoverCue)
-            .help("删除这一行")
+            .help(language.t("Delete this line", "删除这一行"))
         }
         .padding(10)
         .background(AppTheme.elevated.opacity(0.6), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -641,20 +661,24 @@ struct AddJournalTagSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var language: LanguageStore
     @State private var name = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("添加标签")
+            Text(language.t("Add tag", "添加标签"))
                 .font(.headline)
-            TextField("标签名，如 刷题 / 写博客", text: $name)
+            TextField(
+                language.t("Tag name, e.g. LeetCode / blogging", "标签名，如 刷题 / 写博客"),
+                text: $name
+            )
                 .textFieldStyle(.roundedBorder)
                 .onSubmit { save() }
             HStack {
                 Spacer()
-                Button("取消") { dismiss() }
+                Button(language.t("Cancel", "取消")) { dismiss() }
                     .keyboardShortcut(.cancelAction)
-                Button("添加") { save() }
+                Button(language.t("Add", "添加")) { save() }
                     .keyboardShortcut(.defaultAction)
                     .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
             }
@@ -678,18 +702,22 @@ struct JournalBackfillSheet: View {
     let onPick: (Date) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var language: LanguageStore
     @State private var day = Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("补记日志")
+            Text(language.t("Backfill journal", "补记日志"))
                 .font(.headline)
-            Text("选一个过去的日期，展开那天来写。")
+            Text(language.t(
+                "Pick a past day, then open it to write.",
+                "选一个过去的日期，展开那天来写。"
+            ))
                 .font(.caption)
                 .foregroundStyle(AppTheme.muted)
 
             DatePicker(
-                "日期",
+                language.t("Date", "日期"),
                 selection: $day,
                 in: ...Date(),
                 displayedComponents: .date
@@ -699,9 +727,9 @@ struct JournalBackfillSheet: View {
 
             HStack {
                 Spacer()
-                Button("取消") { dismiss() }
+                Button(language.t("Cancel", "取消")) { dismiss() }
                     .keyboardShortcut(.cancelAction)
-                Button("打开这天") {
+                Button(language.t("Open this day", "打开这天")) {
                     onPick(day)
                     dismiss()
                 }
@@ -721,17 +749,25 @@ enum JournalDateFormat {
     }
 
     static func dayLabel(_ date: Date) -> String {
-        if Calendar.current.isDateInToday(date) { return "今天" }
-        if Calendar.current.isDateInYesterday(date) { return "昨天" }
+        if Calendar.current.isDateInToday(date) {
+            return L10n.t("Today", "今天")
+        }
+        if Calendar.current.isDateInYesterday(date) {
+            return L10n.t("Yesterday", "昨天")
+        }
         let f = DateFormatter()
-        f.locale = Locale(identifier: "zh_CN")
-        f.dateFormat = "M月d日"
+        f.locale = AppLanguage.current.locale
+        if AppLanguage.current == .chinese {
+            f.dateFormat = "M月d日"
+        } else {
+            f.dateFormat = "MMM d"
+        }
         return f.string(from: date)
     }
 
     static func weekday(_ date: Date) -> String {
         let f = DateFormatter()
-        f.locale = Locale(identifier: "zh_CN")
+        f.locale = AppLanguage.current.locale
         f.dateFormat = "EEEE"
         return f.string(from: date)
     }

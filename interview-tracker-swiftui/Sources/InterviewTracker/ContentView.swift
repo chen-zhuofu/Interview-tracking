@@ -3,6 +3,7 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var language: LanguageStore
     @StateObject private var chatViewModel = ChatViewModel()
     @StateObject private var navigation = NavigationStore()
     @State private var warpTrigger = 0
@@ -103,8 +104,8 @@ struct ContentView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help("返回首页")
-            .accessibilityLabel("返回首页")
+            .help(language.t("Home", "返回首页"))
+            .accessibilityLabel(language.t("Home", "返回首页"))
 
             HStack(spacing: 8) {
                 Button {
@@ -118,7 +119,7 @@ struct ContentView: View {
                 .buttonStyle(.hoverCue)
                 .foregroundStyle(navigation.canGoBack ? AppTheme.textPrimary : AppTheme.muted)
                 .disabled(!navigation.canGoBack)
-                .help("后退（⌥⌘←）")
+                .help(language.t("Back (⌥⌘←)", "后退（⌥⌘←）"))
 
                 Button {
                     navigation.forward()
@@ -131,11 +132,13 @@ struct ContentView: View {
                 .buttonStyle(.hoverCue)
                 .foregroundStyle(navigation.canGoForward ? AppTheme.textPrimary : AppTheme.muted)
                 .disabled(!navigation.canGoForward)
-                .help("前进（⌥⌘→）")
+                .help(language.t("Forward (⌥⌘→)", "前进（⌥⌘→）"))
             }
             .padding(.leading, 16)
 
             Spacer()
+
+            languageToggle
 
             Button {
                 if case .todos = navigation.current {
@@ -152,7 +155,7 @@ struct ContentView: View {
                     .background(AppTheme.elevated.opacity(0.7), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
             .buttonStyle(.hoverCue)
-            .help("待办清单：我要做的事")
+            .help(language.t("Todos", "待办清单：我要做的事"))
 
             Button {
                 if case .reading = navigation.current {
@@ -169,7 +172,7 @@ struct ContentView: View {
                     .background(AppTheme.elevated.opacity(0.7), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
             .buttonStyle(.hoverCue)
-            .help("阅读收藏：论文 / tech blog")
+            .help(language.t("Reading library", "阅读收藏：论文 / tech blog"))
 
             Button {
                 if case .documents = navigation.current {
@@ -186,7 +189,7 @@ struct ContentView: View {
                     .background(AppTheme.elevated.opacity(0.7), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
             .buttonStyle(.hoverCue)
-            .help("求职资料库：简历 / Slides / Cover Letter")
+            .help(language.t("Documents: resume / slides / cover letter", "求职资料库：简历 / Slides / Cover Letter"))
             .padding(.trailing, 4)
 
             Button {
@@ -199,7 +202,7 @@ struct ContentView: View {
                     .background(AppTheme.elevated.opacity(0.7), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
             .buttonStyle(.hoverCue)
-            .help("设置")
+            .help(language.t("Settings", "设置"))
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 10)
@@ -207,12 +210,37 @@ struct ContentView: View {
         .background(navigationKeyShortcuts)
     }
 
+    private var languageToggle: some View {
+        Menu {
+            ForEach(AppLanguage.allCases) { lang in
+                Button {
+                    language.language = lang
+                } label: {
+                    HStack {
+                        Text(lang.pickerLabel)
+                        if language.language == lang {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                }
+            }
+        } label: {
+            Text(language.language == .chinese ? "中" : "EN")
+                .font(.system(size: 12, weight: .bold, design: .rounded))
+                .foregroundStyle(AppTheme.accent)
+                .frame(width: 32, height: 32)
+                .background(AppTheme.elevated.opacity(0.7), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
+        .menuStyle(.borderlessButton)
+        .help(language.t("Language", "语言"))
+    }
+
     /// Hidden buttons so ⌥⌘← / ⌥⌘→ work anywhere in the window.
     private var navigationKeyShortcuts: some View {
         ZStack {
-            Button("后退") { navigation.back() }
+            Button(language.t("Back", "后退")) { navigation.back() }
                 .keyboardShortcut(.leftArrow, modifiers: [.option, .command])
-            Button("前进") { navigation.forward() }
+            Button(language.t("Forward", "前进")) { navigation.forward() }
                 .keyboardShortcut(.rightArrow, modifiers: [.option, .command])
         }
         .frame(width: 0, height: 0)

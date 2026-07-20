@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 
 struct ChatPanelView: View {
     @ObservedObject var viewModel: ChatViewModel
+    @EnvironmentObject private var language: LanguageStore
     @Environment(\.modelContext) private var modelContext
     @FocusState private var inputFocused: Bool
 
@@ -44,7 +45,7 @@ struct ChatPanelView: View {
 
     /// Esc works whether the panel is open or just the input bar is focused.
     private var escapeShortcut: some View {
-        Button("收起聊天") { dismissChat() }
+        Button(language.t("Collapse chat", "收起聊天")) { dismissChat() }
             .keyboardShortcut(.escape, modifiers: [])
             .frame(width: 0, height: 0)
             .opacity(0)
@@ -54,7 +55,7 @@ struct ChatPanelView: View {
 
     private var expandedHeader: some View {
         HStack {
-            Text("聊天记录")
+            Text(language.t("Chat history", "聊天记录"))
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(ChatTheme.secondaryText)
 
@@ -70,7 +71,7 @@ struct ChatPanelView: View {
             }
             .buttonStyle(.hoverCueContained)
             .foregroundStyle(ChatTheme.secondaryText)
-            .help("API Key 设置")
+            .help(language.t("API Key settings", "API Key 设置"))
 
             Button {
                 dismissChat()
@@ -82,7 +83,7 @@ struct ChatPanelView: View {
             }
             .buttonStyle(.hoverCueContained)
             .foregroundStyle(ChatTheme.secondaryText)
-            .help("收起聊天（Esc）")
+            .help(language.t("Collapse chat (Esc)", "收起聊天（Esc）"))
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -109,7 +110,7 @@ struct ChatPanelView: View {
                         HStack(spacing: 8) {
                             ProgressView()
                                 .controlSize(.small)
-                            Text("正在归纳…")
+                            Text(language.t("Summarizing…", "正在归纳…"))
                                 .font(.caption)
                                 .foregroundStyle(ChatTheme.secondaryText)
                         }
@@ -144,11 +145,11 @@ struct ChatPanelView: View {
             HStack(spacing: 7) {
                 Image(systemName: "checkmark.shield")
                     .foregroundStyle(AppTheme.orange)
-                Text("批准后才会写入")
+                Text(language.t("Writes after you approve", "批准后才会写入"))
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(ChatTheme.primaryText)
                 Spacer()
-                Text("\(approval.writes.count) 项")
+                Text(language.t("\(approval.writes.count) items", "\(approval.writes.count) 项"))
                     .font(.caption2.monospacedDigit())
                     .foregroundStyle(ChatTheme.secondaryText)
             }
@@ -168,14 +169,14 @@ struct ChatPanelView: View {
             }
 
             HStack {
-                Button("取消") {
+                Button(language.t("Cancel", "取消")) {
                     viewModel.rejectPendingWrites()
                 }
                 .buttonStyle(.bordered)
 
                 Spacer()
 
-                Button("批准并执行") {
+                Button(language.t("Approve & run", "批准并执行")) {
                     Task { await viewModel.approvePendingWrites(using: modelContext) }
                 }
                 .buttonStyle(.borderedProminent)
@@ -205,7 +206,7 @@ struct ChatPanelView: View {
                     in: RoundedRectangle(cornerRadius: 12, style: .continuous)
                 )
                 .contextMenu {
-                    Button("复制") {
+                    Button(language.t("Copy", "复制")) {
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString(message.text, forType: .string)
                     }
@@ -230,7 +231,7 @@ struct ChatPanelView: View {
             HStack(alignment: .center, spacing: 10) {
                 voiceButton
 
-                TextField("", text: $viewModel.draft, axis: .vertical)
+                TextField(language.t("Say something…", "说一句…"), text: $viewModel.draft, axis: .vertical)
                     .textFieldStyle(.plain)
                     .font(.system(size: 14))
                     .foregroundStyle(ChatTheme.primaryText)
@@ -265,7 +266,7 @@ struct ChatPanelView: View {
                 }
                 .buttonStyle(.hoverCue)
                 .disabled(!canSend)
-                .help("发送")
+                .help(language.t("Send", "发送"))
             }
         }
         .padding(.horizontal, 14)
@@ -287,7 +288,7 @@ struct ChatPanelView: View {
         }
         .buttonStyle(.hoverCue)
         .disabled(viewModel.pendingApproval != nil)
-        .help("语音输入（模型待定）")
+        .help(language.t("Voice input (model TBD)", "语音输入（模型待定）"))
     }
 
     private func attachmentPreview(_ image: NSImage) -> some View {
@@ -302,7 +303,7 @@ struct ChatPanelView: View {
                         .stroke(ChatTheme.stroke, lineWidth: 1)
                 )
 
-            Text("已附带图片")
+            Text(language.t("Image attached", "已附带图片"))
                 .font(.caption)
                 .foregroundStyle(ChatTheme.secondaryText)
 
@@ -316,7 +317,7 @@ struct ChatPanelView: View {
                     .foregroundStyle(ChatTheme.secondaryText)
             }
             .buttonStyle(.hoverCue)
-            .help("移除图片")
+            .help(language.t("Remove image", "移除图片"))
         }
         .padding(.leading, 2)
     }

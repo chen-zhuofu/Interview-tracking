@@ -3,6 +3,7 @@ import SwiftData
 
 /// 待办清单：添加「我要做的事」、勾选完成、设 P0–P3 优先级、分「生活 / 职业」两类。
 struct TodoListView: View {
+    @EnvironmentObject private var language: LanguageStore
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \TodoItem.createdAt, order: .reverse) private var todos: [TodoItem]
 
@@ -33,12 +34,12 @@ struct TodoListView: View {
             Image(systemName: "checklist")
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(AppTheme.accent)
-            Text("待办清单")
+            Text(language.t("Todo list", "待办清单"))
                 .font(.title2.weight(.bold))
                 .foregroundStyle(AppTheme.textPrimary)
             Spacer()
             if activeCount > 0 {
-                Text("还有 \(activeCount) 件")
+                Text(language.t("\(activeCount) remaining", "还有 \(activeCount) 件"))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(AppTheme.muted)
             }
@@ -50,7 +51,7 @@ struct TodoListView: View {
     private var addBar: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
-                TextField("我要做的事…", text: $newTitle)
+                TextField(language.t("Something to do…", "我要做的事…"), text: $newTitle)
                     .textFieldStyle(.plain)
                     .font(.system(size: 14))
                     .foregroundStyle(AppTheme.textPrimary)
@@ -68,7 +69,7 @@ struct TodoListView: View {
                 }
                 .buttonStyle(.hoverCueContained)
                 .disabled(newTitle.trimmingCharacters(in: .whitespaces).isEmpty)
-                .help("添加")
+                .help(language.t("Add", "添加"))
             }
 
             HStack(spacing: 14) {
@@ -98,7 +99,7 @@ struct TodoListView: View {
 
     private var filterBar: some View {
         HStack(spacing: 8) {
-            filterChip(title: "全部", active: filter == nil) { filter = nil }
+            filterChip(title: language.t("All", "全部"), active: filter == nil) { filter = nil }
             ForEach(TodoCategory.allCases) { cat in
                 filterChip(title: cat.label, active: filter == cat) { filter = cat }
             }
@@ -114,7 +115,10 @@ struct TodoListView: View {
         let done = visibleTodos.filter { $0.isDone }
 
         if visibleTodos.isEmpty {
-            Text("还没有待办。上面加一条「我要做的事」。")
+            Text(language.t(
+                "No todos yet. Add something to do above.",
+                "还没有待办。上面加一条「我要做的事」。"
+            ))
                 .font(.callout)
                 .foregroundStyle(AppTheme.muted)
                 .padding(.top, 8)
@@ -125,7 +129,7 @@ struct TodoListView: View {
                 }
             }
             if !done.isEmpty {
-                Text("已完成 \(done.count)")
+                Text(language.t("Done \(done.count)", "已完成 \(done.count)"))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(AppTheme.muted)
                     .padding(.top, 10)
@@ -170,7 +174,7 @@ struct TodoListView: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.hoverCue)
-            .help("删除")
+            .help(language.t("Delete", "删除"))
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
@@ -197,7 +201,7 @@ struct TodoListView: View {
         }
         .menuStyle(.borderlessButton)
         .fixedSize()
-        .help("改优先级")
+        .help(language.t("Change priority", "改优先级"))
     }
 
     private func priorityBadge(_ p: TodoPriority) -> some View {

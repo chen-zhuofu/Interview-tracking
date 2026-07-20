@@ -93,8 +93,8 @@ enum TodoCategory: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .life: return "生活"
-        case .career: return "职业"
+        case .life: return L10n.t("Life", "生活")
+        case .career: return L10n.t("Career", "职业")
         }
     }
 

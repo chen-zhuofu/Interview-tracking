@@ -12,6 +12,7 @@ struct StageNodeDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var chat: ChatViewModel
+    @EnvironmentObject private var language: LanguageStore
     @Query private var nodes: [StageNode]
 
     @State private var title = ""
@@ -45,7 +46,10 @@ struct StageNodeDetailView: View {
                 }
                 footer(node)
             } else {
-                ContentUnavailableView("节点不存在", systemImage: "questionmark.circle")
+                ContentUnavailableView(
+                    language.t("Node not found", "节点不存在"),
+                    systemImage: "questionmark.circle"
+                )
             }
         }
         .padding(22)
@@ -61,7 +65,7 @@ struct StageNodeDetailView: View {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(maxWidth: 760, maxHeight: 560)
-                    Button("关闭") { self.previewImage = nil }
+                    Button(language.t("Close", "关闭")) { self.previewImage = nil }
                 }
                 .padding(20)
             }
@@ -84,11 +88,11 @@ struct StageNodeDetailView: View {
     private func header(_ node: StageNode) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 8) {
-                Text(node.application?.company?.name ?? "未知公司")
+                Text(node.application?.company?.name ?? language.t("Unknown company", "未知公司"))
                     .font(.title3.weight(.bold))
                     .foregroundStyle(AppTheme.textPrimary)
                 if let outcome = displayedOutcome(node) {
-                    Text(outcome.label)
+                    Text(outcomeLabel(outcome))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.white)
                         .padding(.horizontal, 8)
@@ -96,9 +100,17 @@ struct StageNodeDetailView: View {
                         .background(outcomeColor(outcome), in: Capsule())
                 }
             }
-            Text("阶段节点详情 · 改完点保存")
+            Text(language.t("Stage node details · save when done", "阶段节点详情 · 改完点保存"))
                 .font(.caption)
                 .foregroundStyle(AppTheme.muted)
+        }
+    }
+
+    private func outcomeLabel(_ outcome: InterviewOutcome) -> String {
+        switch outcome {
+        case .passed: return language.t("Passed", "已通过")
+        case .failed: return language.t("Failed", "未通过")
+        case .pending: return language.t("Pending", "等结果")
         }
     }
 
@@ -119,14 +131,14 @@ struct StageNodeDetailView: View {
 
     private var stageFields: some View {
         VStack(alignment: .leading, spacing: 10) {
-            TextField("阶段（以你写的为准）", text: $title)
+            TextField(language.t("Stage (whatever you write)", "阶段（以你写的为准）"), text: $title)
                 .textFieldStyle(.roundedBorder)
                 .font(.body.weight(.medium))
 
             HStack(spacing: 14) {
-                DatePicker("日期", selection: $day, displayedComponents: .date)
+                DatePicker(language.t("Date", "日期"), selection: $day, displayedComponents: .date)
                     .datePickerStyle(.field)
-                Toggle("有具体时间", isOn: $hasTime)
+                Toggle(language.t("Has specific time", "有具体时间"), isOn: $hasTime)
                 if hasTime {
                     DatePicker("", selection: $time, displayedComponents: .hourAndMinute)
                         .datePickerStyle(.field)
@@ -134,7 +146,7 @@ struct StageNodeDetailView: View {
                 }
             }
 
-            Picker("看板桶", selection: $bucket) {
+            Picker(language.t("Board bucket", "看板桶"), selection: $bucket) {
                 ForEach(OpportunityBucket.allCases, id: \.self) { bucket in
                     Text(bucket.label).tag(bucket)
                 }
@@ -142,8 +154,11 @@ struct StageNodeDetailView: View {
             .pickerStyle(.segmented)
 
             VStack(alignment: .leading, spacing: 2) {
-                Toggle("这是一轮面试", isOn: $isInterview)
-                Text("面试从 HR Call 起算；猎头Call、各种「预约X」不算面试。进入下一轮 = 上一轮通过。")
+                Toggle(language.t("This is an interview round", "这是一轮面试"), isOn: $isInterview)
+                Text(language.t(
+                    "Interviews start at HR Call; headhunter calls and “book X” are not. Next round = previous passed.",
+                    "面试从 HR Call 起算；猎头Call、各种「预约X」不算面试。进入下一轮 = 上一轮通过。"
+                ))
                     .font(.caption)
                     .foregroundStyle(AppTheme.muted)
             }
@@ -152,7 +167,7 @@ struct StageNodeDetailView: View {
 
     private var noteSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("备注")
+            Text(language.t("Notes", "备注"))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.textSecondary)
             TextEditor(text: $note)
@@ -166,7 +181,7 @@ struct StageNodeDetailView: View {
 
     private var linkSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("链接（每行一个）")
+            Text(language.t("Links (one per line)", "链接（每行一个）"))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.textSecondary)
             TextEditor(text: $links)
@@ -249,7 +264,7 @@ struct StageNodeDetailView: View {
 
     private func footer(_ node: StageNode) -> some View {
         HStack {
-            Button("删除节点", role: .destructive) {
+            Button(language.t("Delete node", "删除节点"), role: .destructive) {
                 let label = "\(node.application?.company?.name ?? "?")·\(node.title)"
                 for attachment in node.attachments ?? [] {
                     AttachmentStore.delete(fileName: attachment.fileName)
@@ -264,9 +279,9 @@ struct StageNodeDetailView: View {
                 dismiss()
             }
             Spacer()
-            Button("取消") { dismiss() }
+            Button(language.t("Cancel", "取消")) { dismiss() }
                 .keyboardShortcut(.cancelAction)
-            Button("保存") {
+            Button(language.t("Save", "保存")) {
                 save(node)
                 dismiss()
             }
@@ -320,21 +335,26 @@ struct AttachmentGridView: View {
     let onDelete: (MediaAttachment) -> Void
     let onDropURLs: ([URL]) -> Void
 
+    @EnvironmentObject private var language: LanguageStore
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 10) {
-                Text("图片 / 附件")
+                Text(language.t("Images / attachments", "图片 / 附件"))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(AppTheme.textSecondary)
                 Spacer()
-                Button("粘贴图片", action: onPaste)
+                Button(language.t("Paste image", "粘贴图片"), action: onPaste)
                     .font(.caption)
-                Button("添加文件…", action: onAdd)
+                Button(language.t("Add files…", "添加文件…"), action: onAdd)
                     .font(.caption)
             }
 
             if attachments.isEmpty {
-                Text("拖入图片、点「添加文件…」或复制后点「粘贴图片」。")
+                Text(language.t(
+                    "Drop images, tap Add files…, or copy then Paste image.",
+                    "拖入图片、点「添加文件…」或复制后点「粘贴图片」。"
+                ))
                     .font(.caption)
                     .foregroundStyle(AppTheme.muted)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -389,12 +409,12 @@ struct AttachmentGridView: View {
         }
         .buttonStyle(.hoverCue)
         .contextMenu {
-            Button("在 Finder 中显示") {
+            Button(language.t("Show in Finder", "在 Finder 中显示")) {
                 NSWorkspace.shared.activateFileViewerSelecting(
                     [AttachmentStore.url(for: attachment.fileName)]
                 )
             }
-            Button("删除", role: .destructive) {
+            Button(language.t("Delete", "删除"), role: .destructive) {
                 onDelete(attachment)
             }
         }

@@ -45,12 +45,14 @@ private struct TimelineCreateDraft: Identifiable {
 /// Click expands to week rows; vertical scroll moves earlier/later weeks.
 struct TimelineStripView: View {
     let events: [TimelineDisplayEvent]
-    var title: String = "时间线"
+    /// Optional override; nil uses the localized “Timeline” title.
+    var title: String? = nil
     var onExpandedChange: ((Bool) -> Void)? = nil
 
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var navigation: NavigationStore
     @EnvironmentObject private var chat: ChatViewModel
+    @EnvironmentObject private var language: LanguageStore
 
     @State private var isExpanded = false
     @State private var hoveredDayKey: String?
@@ -152,12 +154,12 @@ struct TimelineStripView: View {
                 }
             } label: {
                 HStack(alignment: .center, spacing: 10) {
-                    Text(title)
+                    Text(title ?? language.t("Timeline", "时间线"))
                         .font(.headline)
                         .foregroundStyle(AppTheme.textPrimary)
                     Spacer(minLength: 8)
                     if isExpanded {
-                        Text("收起")
+                        Text(language.t("Collapse", "收起"))
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(AppTheme.accent)
                     }
@@ -166,12 +168,17 @@ struct TimelineStripView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help(isExpanded ? "收起时间线" : "展开时间线")
+            .help(isExpanded
+                  ? language.t("Collapse timeline", "收起时间线")
+                  : language.t("Expand timeline", "展开时间线"))
 
             if isExpanded {
                 expandedWeeksPanel
             } else if events.isEmpty {
-                Text("还没有时间线节点。右键任意一天可以新建，或在聊天里说一句。")
+                Text(language.t(
+                    "No timeline nodes yet. Right-click any day to create one, or say something in chat.",
+                    "还没有时间线节点。右键任意一天可以新建，或在聊天里说一句。"
+                ))
                     .font(.caption)
                     .foregroundStyle(AppTheme.muted)
                     .padding(.vertical, 12)
@@ -210,17 +217,20 @@ struct TimelineStripView: View {
             ),
             titleVisibility: .visible
         ) {
-            Button("删除", role: .destructive) {
+            Button(language.t("Delete", "删除"), role: .destructive) {
                 if let pendingDelete {
                     performDelete(pendingDelete)
                 }
                 pendingDelete = nil
             }
-            Button("取消", role: .cancel) {
+            Button(language.t("Cancel", "取消"), role: .cancel) {
                 pendingDelete = nil
             }
         } message: {
-            Text("会立刻删掉这个阶段节点（含备注和附件）。")
+            Text(language.t(
+                "This permanently deletes the stage node (including notes and attachments).",
+                "会立刻删掉这个阶段节点（含备注和附件）。"
+            ))
         }
         .onChange(of: isExpanded) { _, value in
             onExpandedChange?(value)
@@ -228,8 +238,13 @@ struct TimelineStripView: View {
     }
 
     private var deleteDialogTitle: String {
-        guard let event = pendingDelete else { return "删除节点" }
-        return "删除「\(nodeLabel(event))」？"
+        guard let event = pendingDelete else {
+            return language.t("Delete node", "删除节点")
+        }
+        return language.t(
+            "Delete “\(nodeLabel(event))”?",
+            "删除「\(nodeLabel(event))」？"
+        )
     }
 
     /// Horizontal pan around today; scroller chrome removed so layout does not jitter.
@@ -404,11 +419,13 @@ struct TimelineStripView: View {
             dropHighlightDayKey = targeted ? dayKey : (dropHighlightDayKey == dayKey ? nil : dropHighlightDayKey)
         }
         .contextMenu {
-            Button("在这天新建节点…") {
+            Button(language.t("New node on this day…", "在这天新建节点…")) {
                 createDraft = TimelineCreateDraft(day: day)
             }
         }
-        .help(events.isEmpty ? "右键新建节点" : events.map(nodeLabel).joined(separator: "\n"))
+        .help(events.isEmpty
+              ? language.t("Right-click to create a node", "右键新建节点")
+              : events.map(nodeLabel).joined(separator: "\n"))
         .onTapGesture {
             if !isExpanded {
                 expandTimeline()
@@ -554,19 +571,19 @@ struct TimelineStripView: View {
         }
         .buttonStyle(.hoverCue)
         .contextMenu {
-            Button("查看 / 编辑详情…") {
+            Button(language.t("View / edit details…", "查看 / 编辑详情…")) {
                 detailNodeID = event.id
             }
             if let companyID = event.companyID {
-                Button("打开公司") {
+                Button(language.t("Open company", "打开公司")) {
                     navigation.openCompany(companyID)
                 }
             }
-            Button("删除节点…", role: .destructive) {
+            Button(language.t("Delete node…", "删除节点…"), role: .destructive) {
                 pendingDelete = event
             }
         }
-        .help("点击查看详情 · 拖动改日期")
+        .help(language.t("Click for details · drag to reschedule", "点击查看详情 · 拖动改日期"))
         .draggable(TimelineDragItem(nodeID: event.id)) {
             nodeChipLabel(event, emphasize: true)
                 .opacity(0.9)
@@ -632,7 +649,7 @@ struct TimelineStripView: View {
 
     private func dayLabel(_ date: Date) -> String {
         let f = DateFormatter()
-        f.locale = Locale(identifier: "zh_CN")
+        f.locale = language.language.locale
         f.dateFormat = "M/d"
         return f.string(from: date)
     }
@@ -652,10 +669,11 @@ private struct StageNodeCreateSheet: View {
     let onSave: (String, String, Date, Bool) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var language: LanguageStore
     @State private var companyName = ""
     @State private var stageTitle = ""
     @State private var selectedDay: Date
-    /// 必填：这是不是一轮面试。自由文本系统猜不准，所以由用户明确选择。
+    /// Required: is this an interview round? Free text is ambiguous, so the user must choose.
     @State private var isInterview: Bool?
     @State private var interviewTouched = false
 
@@ -667,29 +685,37 @@ private struct StageNodeCreateSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("新建时间线节点")
+            Text(language.t("New timeline node", "新建时间线节点"))
                 .font(.headline)
-            Text("阶段名以你写的为准，例如：准备投 / 官网投 / 猎头联系Leslie / 内推 / 预约HR Call / Phone Interview 1…")
+            Text(language.t(
+                "Stage title is whatever you type, e.g. prep apply / website apply / recruiter Leslie / referral / book HR Call / Phone Interview 1…",
+                "阶段名以你写的为准，例如：准备投 / 官网投 / 猎头联系Leslie / 内推 / 预约HR Call / Phone Interview 1…"
+            ))
                 .font(.caption)
                 .foregroundStyle(AppTheme.muted)
 
-            DatePicker("日期", selection: $selectedDay, displayedComponents: .date)
+            DatePicker(language.t("Date", "日期"), selection: $selectedDay, displayedComponents: .date)
                 .datePickerStyle(.field)
 
-            TextField("公司（可新建，别名自动规范）", text: $companyName)
+            TextField(language.t("Company (can create new; aliases normalize)", "公司（可新建，别名自动规范）"), text: $companyName)
                 .textFieldStyle(.roundedBorder)
 
-            TextField("阶段", text: $stageTitle)
+            TextField(language.t("Stage", "阶段"), text: $stageTitle)
                 .textFieldStyle(.roundedBorder)
                 .onChange(of: stageTitle) { _, value in
-                    // 建议值，用户改过就不再覆盖。
+                    // Suggested value; stop overwriting once the user edits the flag.
                     guard !interviewTouched else { return }
                     let trimmed = value.trimmingCharacters(in: .whitespaces)
                     isInterview = trimmed.isEmpty ? nil : StageClassifier.isInterview(forTitle: trimmed)
                 }
 
             HStack(spacing: 8) {
-                ForEach(["内推", "官网投", "猎头联系", "Recruiter联系"], id: \.self) { label in
+                ForEach([
+                    language.t("Referral", "内推"),
+                    language.t("Website apply", "官网投"),
+                    language.t("Headhunter", "猎头联系"),
+                    language.t("Recruiter", "Recruiter联系"),
+                ], id: \.self) { label in
                     Button(label) {
                         stageTitle = label
                     }
@@ -699,7 +725,7 @@ private struct StageNodeCreateSheet: View {
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("这是一轮面试吗？（必选）")
+                Text(language.t("Is this an interview round? (required)", "这是一轮面试吗？（必选）"))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(AppTheme.textSecondary)
                 Picker("", selection: Binding(
@@ -709,21 +735,24 @@ private struct StageNodeCreateSheet: View {
                         interviewTouched = true
                     }
                 )) {
-                    Text("是面试").tag(Bool?.some(true))
-                    Text("不是面试").tag(Bool?.some(false))
+                    Text(language.t("Interview", "是面试")).tag(Bool?.some(true))
+                    Text(language.t("Not an interview", "不是面试")).tag(Bool?.some(false))
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
-                Text("面试从 HR Call 起算；猎头Call、各种「预约X」不算面试。")
+                Text(language.t(
+                    "Interviews start at HR Call; headhunter calls and “book X” are not interviews.",
+                    "面试从 HR Call 起算；猎头Call、各种「预约X」不算面试。"
+                ))
                     .font(.caption)
                     .foregroundStyle(AppTheme.muted)
             }
 
             HStack {
                 Spacer()
-                Button("取消") { dismiss() }
+                Button(language.t("Cancel", "取消")) { dismiss() }
                     .keyboardShortcut(.cancelAction)
-                Button("保存") {
+                Button(language.t("Save", "保存")) {
                     onSave(companyName, stageTitle, selectedDay, isInterview ?? false)
                     dismiss()
                 }

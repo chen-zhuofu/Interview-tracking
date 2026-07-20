@@ -24,8 +24,8 @@ data/
 **/google_calendar_oauth.json
 **/google_oauth_client.json
 
-# Local scratch / build artifacts
-InterviewTracker/
+# Accidental local duplicate of the app folder at repo root (not Sources/InterviewTracker)
+/InterviewTracker/
 .tmp/
 .build/
 .swiftpm/
