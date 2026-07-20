@@ -138,8 +138,6 @@ struct ContentView: View {
 
             Spacer()
 
-            languageToggle
-
             Button {
                 if case .todos = navigation.current {
                     navigation.goOverview()
@@ -208,31 +206,6 @@ struct ContentView: View {
         .padding(.vertical, 10)
         .background(AppTheme.background.opacity(0.55))
         .background(navigationKeyShortcuts)
-    }
-
-    private var languageToggle: some View {
-        Menu {
-            ForEach(AppLanguage.allCases) { lang in
-                Button {
-                    language.language = lang
-                } label: {
-                    HStack {
-                        Text(lang.pickerLabel)
-                        if language.language == lang {
-                            Image(systemName: "checkmark")
-                        }
-                    }
-                }
-            }
-        } label: {
-            Text(language.language == .chinese ? "中" : "EN")
-                .font(.system(size: 12, weight: .bold, design: .rounded))
-                .foregroundStyle(AppTheme.accent)
-                .frame(width: 32, height: 32)
-                .background(AppTheme.elevated.opacity(0.7), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        }
-        .menuStyle(.borderlessButton)
-        .help(language.t("Language", "语言"))
     }
 
     /// Hidden buttons so ⌥⌘← / ⌥⌘→ work anywhere in the window.

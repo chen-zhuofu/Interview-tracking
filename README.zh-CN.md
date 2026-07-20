@@ -5,7 +5,7 @@
 
 仓库内容就是 macOS 主程序：`interview-tracker-swiftui/`。
 
-**界面默认英文。** 可随时在顶栏 `EN` / `中` 或设置里切到中文。  
+**界面默认英文。** 可在 **设置** 里切到中文。  
 English README: [README.md](README.md)
 
 ---

@@ -43,7 +43,7 @@ struct CSVExporter {
                 if let d = app.appliedDate { return formatter.string(from: d) }
                 return ""
             }()
-            let stageLabel = escapeCSV(STAGE_LABELS[app.status] ?? app.status)
+            let stageLabel = escapeCSV(app.currentStageTitle)
             let jobLink = escapeCSV(app.jobDescriptionURL ?? "")
             let notes = escapeCSV(app.notes ?? "")
 

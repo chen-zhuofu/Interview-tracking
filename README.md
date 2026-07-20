@@ -5,7 +5,7 @@ Say something in chat and the agent can read/write companies, interview timeline
 
 The repo is the macOS app under `interview-tracker-swiftui/`.
 
-**Language:** the UI defaults to **English**. Switch to 中文 anytime from the top bar (`EN` / `中`) or Settings.  
+**Language:** the UI defaults to **English**. Switch to 中文 in **Settings**.  
 中文说明见 [README.zh-CN.md](README.zh-CN.md).
 
 ---
@@ -61,7 +61,7 @@ You can also double-click `Run.command` (`swift build` + launch debug binary).
 2. Open **Settings** (gear) → paste your **DeepSeek API Key**  
 3. (Optional) Gemini key for screenshots in chat  
 4. (Optional) Google sign-in for calendar sync  
-5. Language defaults to English; change with the **EN / 中** control in the top bar
+5. Language defaults to English; change it in **Settings**
 
 Keys stay on this Mac only:
 
