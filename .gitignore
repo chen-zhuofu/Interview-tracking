@@ -2,5 +2,31 @@ __pycache__/
 *.pyc
 *.pyo
 /tmp/
-data/*.db
 .venv/
+
+# Local user data — never commit
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+*.store
+*.store-wal
+*.store-shm
+**/user_feedback_memory.jsonl
+**/user_feedback_memory.backup-*.jsonl
+**/agent_traces.jsonl
+**/backups/
+**/deepseek_api_key
+**/gemini_api_key
+**/google_calendar_oauth.json
+**/google_oauth_client.json
+
+# Local scratch / build artifacts
+InterviewTracker/.tmp/
+.tmp/
+.build/
+.swiftpm/
+.DS_Store
+
+# Web sample DB
+interview-tracker-web/data/*.db

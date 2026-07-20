@@ -1,45 +1,110 @@
-# Interview Tracker — 面试流程管理 (macOS)
+# Interview Tracker — macOS
 
-原生 macOS SwiftUI 应用，帮助你管理求职面试全流程。
+用自然语言记录求职进度。DeepSeek Agent 通过工具读写公司、面试时间线、日志、待办、时间记录等；**写入前会弹出批准卡**。
+
+这是仓库里的主程序目录。从仓库根目录 clone 后的完整步骤见：[仓库根 README](../README.md)。
 
 ## 系统要求
 
-- macOS 14 (Sonoma) 或更高版本
-- Xcode 15 或更高版本（用于构建）
+- macOS 14 (Sonoma) 或更高
+- Xcode 15+（提供 `swift` 命令行）
+- DeepSeek API Key
+- （可选）Gemini API Key — 聊天发图
+- （可选）Google OAuth — Calendar 同步
 
-## 快速开始
-
-### 方式一：Xcode 打开
+## Clone 后进入本目录
 
 ```bash
-open Package.swift
+git clone https://github.com/chen-zhuofu/Interview-tracking.git
+cd Interview-tracking/interview-tracker-swiftui
 ```
 
-Xcode 会自动解析包并打开项目，按 ⌘R 运行。
+## Build
 
-### 方式二：命令行
+### 打包到桌面（推荐日常使用）
 
 ```bash
-swift build
+./pack-app.sh
+```
+
+桌面会出现 `InterviewTracker.app`，双击打开。
+
+### 开发调试
+
+```bash
 swift run
+# 或
+open Package.swift   # Xcode 里 ⌘R
+# 或双击 Run.command
 ```
 
-## 功能
+跑测试：
 
-| 功能 | 说明 |
+```bash
+swift test
+```
+
+## 首次使用
+
+1. 打开 App → 设置 → 粘贴 DeepSeek API Key  
+2. （可选）Gemini Key、Google 登录  
+3. 底部聊天框直接说话，例如：  
+   `明天下午3点 DeepSeek Phone Interview，想去程度4`  
+4. 有写操作时检查批准卡，再点「批准并执行」
+
+Key 与数据都在本机：
+
+`~/Library/Application Support/InterviewTracker/`
+
+## Google Calendar（可选）
+
+以 **Google Calendar 为准**：
+
+- 已关联的面试：打开 App 或点同步时，从 Google 拉时间
+- 新安排：写入 Google 主日历
+- 聊天里改的时间：会推到 Google
+
+设置里点 **用 Google 账号登录** → 浏览器授权。
+
+### 开发者一次性配置
+
+1. [Google Cloud Console](https://console.cloud.google.com/) 启用 Calendar API  
+2. OAuth 同意屏幕 → 把自己加为测试用户  
+3. 创建「桌面应用」OAuth 客户端  
+4. 把 Client ID / Secret 写入：
+
+```bash
+mkdir -p ~/Library/Application\ Support/InterviewTracker
+cat > ~/Library/Application\ Support/InterviewTracker/google_oauth_client.json <<'EOF'
+{"clientId":"你的ClientID","clientSecret":"你的ClientSecret"}
+EOF
+```
+
+或改 `Sources/InterviewTracker/Services/GoogleOAuthConfig.swift` 后重新 `./pack-app.sh`。
+
+## 界面一览
+
+| 区域 | 说明 |
 |------|------|
-| 仪表盘 | 统计概览：投递总数、各阶段分布、本周面试 |
-| 看板视图 | 9列看板，拖拽卡片流转阶段 |
-| 投递管理 | 投递CRUD、阶段筛选、快速前后流转 |
-| 公司管理 | 公司CRUD、级联删除 |
-| 面试日历 | 近期面试分组（今天/明天/本周/之后）、历史记录 |
+| 仪表盘 | 机会分布、想去程度、最近日志、待办、接下来的面试 |
+| 公司详情 | 介绍 / JD / 面经 / 复盘；可 link 本地 repo 并用 Cursor 打开 |
+| 日志 | tag、时间与状态、补记 |
+| 待办 | P0–P3，生活 / 职业 |
+| 阅读收藏 / 求职资料 | 论文、博客、简历等 |
+| 日历 | 面试安排 |
+| 底部聊天 | Agent；写操作需批准 |
 
 ## 数据
 
-所有数据存储在本地 SwiftData 数据库中，无需网络连接，无需注册账号。
+- 本地 SwiftData，不上传
+- 启动与写入后会自动备份到 `…/InterviewTracker/backups/`
+- 用户明确说「记住 / feedback」会写入 `user_feedback_memory.jsonl`
+
+**不要把** `Application Support` 里的库、Key、备份提交进 git。
 
 ## 技术栈
 
-- SwiftUI — 原生 macOS 界面
-- SwiftData — 本地数据持久化
-- NavigationSplitView — 三栏导航布局
+- SwiftUI + SwiftData
+- DeepSeek（tool-calling Agent）
+- 可选 Gemini（识图）、Google Calendar（OAuth2 + PKCE）
+- Charts（仪表盘）

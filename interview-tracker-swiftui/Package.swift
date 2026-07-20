@@ -6,10 +6,28 @@ let package = Package(
     platforms: [
         .macOS(.v14)
     ],
+    products: [
+        .executable(name: "InterviewTracker", targets: ["InterviewTracker"]),
+        .library(name: "InterviewTrackerLogic", targets: ["InterviewTrackerLogic"])
+    ],
     targets: [
+        .target(
+            name: "InterviewTrackerLogic",
+            path: "Sources/InterviewTrackerLogic"
+        ),
         .executableTarget(
             name: "InterviewTracker",
-            path: "Sources/InterviewTracker"
+            dependencies: ["InterviewTrackerLogic"],
+            path: "Sources/InterviewTracker",
+            resources: [
+                .copy("Resources/Langbridge_Graph.svg"),
+                .copy("Resources/DeepSpace.png")
+            ]
+        ),
+        .testTarget(
+            name: "InterviewTrackerLogicTests",
+            dependencies: ["InterviewTrackerLogic"],
+            path: "Tests/InterviewTrackerLogicTests"
         )
     ]
 )
