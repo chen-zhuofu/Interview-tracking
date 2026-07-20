@@ -1,14 +1,17 @@
+# Local / tooling
 __pycache__/
 *.pyc
 *.pyo
 /tmp/
 .venv/
+.DS_Store
 
 # Local user data — never commit
-data/*.db
-data/*.db-journal
-data/*.db-wal
-data/*.db-shm
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
 *.store
 *.store-wal
 *.store-shm
@@ -22,11 +25,7 @@ data/*.db-shm
 **/google_oauth_client.json
 
 # Local scratch / build artifacts
-InterviewTracker/.tmp/
+InterviewTracker/
 .tmp/
 .build/
 .swiftpm/
-.DS_Store
-
-# Web sample DB
-interview-tracker-web/data/*.db

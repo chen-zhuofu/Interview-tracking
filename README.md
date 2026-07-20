@@ -3,14 +3,7 @@
 用自然语言管理求职进度的 macOS App。  
 聊天说一句，Agent 会读写公司、面试时间线、日志、待办、时间记录等，改动前会先给你批准。
 
-本仓库主要包含：
-
-| 目录 | 说明 |
-|------|------|
-| `interview-tracker-swiftui/` | **macOS 主程序**（SwiftUI + SwiftData） |
-| `interview-tracker-web/` | 早期 Web 版（可选，一般不用） |
-
-下面只讲 macOS 主程序：clone → build → 使用。
+仓库内容就是 macOS 主程序：`interview-tracker-swiftui/`。
 
 ---
 
@@ -109,8 +102,6 @@ Key 只存在本机：
 - SwiftData 数据库：系统 Application Support
 - 自动备份快照：`~/Library/Application Support/InterviewTracker/backups/`
 - 反馈记忆：`~/Library/Application Support/InterviewTracker/user_feedback_memory.jsonl`
-
-仓库里的 `data/` 等本地文件已被 `.gitignore` 排除，clone 下来是空的，正常。
 
 ---
 
