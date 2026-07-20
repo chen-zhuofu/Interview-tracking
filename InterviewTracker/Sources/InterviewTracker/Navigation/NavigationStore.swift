@@ -8,6 +8,8 @@ enum AppRoute: Hashable {
     case reading
     case readingItem(UUID)
     case documents
+    case journal
+    case todos
 }
 
 @MainActor
@@ -52,6 +54,16 @@ final class NavigationStore: ObservableObject {
     func openDocuments() {
         isCalendarPanelOpen = false
         navigate(to: .documents)
+    }
+
+    func openJournal() {
+        isCalendarPanelOpen = false
+        navigate(to: .journal)
+    }
+
+    func openTodos() {
+        isCalendarPanelOpen = false
+        navigate(to: .todos)
     }
 
     func openCalendar() {

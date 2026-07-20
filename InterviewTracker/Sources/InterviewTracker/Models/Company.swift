@@ -13,6 +13,8 @@ final class Company {
     var opinion: String?
     /// 公司介绍（聊天归纳或手动粘贴）
     var companyDescription: String?
+    /// 关联的本地代码仓库路径；用户拖入文件夹指定，点击用 Cursor 打开。
+    var codeRepoPath: String?
     var createdAt: Date
 
     @Relationship(deleteRule: .cascade, inverse: \Application.company)

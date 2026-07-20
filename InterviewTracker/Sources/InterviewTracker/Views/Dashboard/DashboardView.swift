@@ -156,6 +156,9 @@ struct DashboardView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Application.lastUpdated, order: .reverse) private var applications: [Application]
     @Query private var stageNodes: [StageNode]
+    @Query(sort: \JournalEntry.day, order: .reverse) private var journalEntries: [JournalEntry]
+    @Query(sort: \ActivitySession.startAt, order: .reverse) private var activitySessions: [ActivitySession]
+    @Query(sort: \TodoItem.createdAt, order: .reverse) private var todos: [TodoItem]
 
     @State private var showPastInterviews = false
     @State private var hoveringInterviewPanel = false
@@ -347,15 +350,23 @@ struct DashboardView: View {
         stageNodes.filter(\.isInterview)
     }
 
+    /// 有钟点的按「现在」判断；没钟点的按「今天 0 点」——整天都还算即将。
+    private func isStillUpcoming(_ node: StageNode, now: Date = Date()) -> Bool {
+        if node.hasTime {
+            return node.date >= now
+        }
+        return node.date >= Calendar.current.startOfDay(for: now)
+    }
+
     private var upcomingInterviews: [StageNode] {
         interviewNodes
-            .filter { $0.date >= Calendar.current.startOfDay(for: Date()) }
+            .filter { isStillUpcoming($0) }
             .sorted { $0.date < $1.date }
     }
 
     private var pastInterviews: [StageNode] {
         interviewNodes
-            .filter { $0.date < Calendar.current.startOfDay(for: Date()) }
+            .filter { !isStillUpcoming($0) }
             .sorted { $0.date > $1.date }
     }
 
@@ -367,6 +378,12 @@ struct DashboardView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 timelineAndUpcomingRow
+                HStack(alignment: .top, spacing: 22) {
+                    journalCard
+                        .frame(maxWidth: .infinity, alignment: .top)
+                    todoDashboardCard
+                        .frame(width: 360, alignment: .top)
+                }
                 chartsRow
                 opportunityColumnsSection
             }
@@ -416,6 +433,262 @@ struct DashboardView: View {
             userText: "【机会列表】删除公司「\(name)」",
             assistantText: "已删除 \(name) 的全部记录。"
         )
+    }
+
+    /// 最近有内容的 3 天日志（今天靠前）。
+    /// 首页日志卡片里一天的汇总：tag、时间记录摘要、当日心得。
+    private struct DashboardDayRow: Identifiable {
+        let id: Date
+        let day: Date
+        let tags: [String]
+        let timeSummary: String?
+    }
+
+    /// 最近三天（有任意数据的那几天）：日志 tag / 时间记录任一有内容就算。
+    private var recentDays: [DashboardDayRow] {
+        let cal = Calendar.current
+        var days: Set<Date> = []
+        for entry in journalEntries where !entry.isEmpty { days.insert(cal.startOfDay(for: entry.day)) }
+        for session in activitySessions { days.insert(cal.startOfDay(for: session.startAt)) }
+
+        return days.sorted(by: >).prefix(3).map { day in
+            let entry = journalEntries.first { cal.isDate($0.day, inSameDayAs: day) }
+            let sessions = activitySessions.filter { cal.isDate($0.startAt, inSameDayAs: day) }
+            return DashboardDayRow(
+                id: day,
+                day: day,
+                tags: entry?.tagList ?? [],
+                timeSummary: Self.timeSummary(for: sessions)
+            )
+        }
+    }
+
+    /// 把一天的时间记录汇总成一段文字，如「工作 5小时 · 看博客 1小时 · 睡觉 7小时」。
+    /// 工作、睡眠排前面，其余按时长从多到少。全部列出，一行放不下会自动换行。没记录返回 nil。
+    private static func timeSummary(for sessions: [ActivitySession]) -> String? {
+        guard !sessions.isEmpty else { return nil }
+        let grouped = Dictionary(grouping: sessions, by: { $0.category })
+            .map { (category: $0.key, seconds: $0.value.reduce(0) { $0 + $1.durationSeconds }) }
+            .sorted { lhs, rhs in
+                func rank(_ c: String) -> Int { c == "工作" ? 0 : (c.contains("睡") ? 1 : 2) }
+                let (lr, rr) = (rank(lhs.category), rank(rhs.category))
+                return lr == rr ? lhs.seconds > rhs.seconds : lr < rr
+            }
+        let kept = grouped.filter { $0.seconds >= 60 }
+        guard !kept.isEmpty else { return nil }
+        let parts = kept.map { "\($0.category) \(ActivityDuration.label($0.seconds))" }
+        return parts.joined(separator: " · ")
+    }
+
+    private var journalCard: some View {
+        Button {
+            navigation.openJournal()
+        } label: {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 8) {
+                    Image(systemName: "text.book.closed")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(AppTheme.accent)
+                    Text("日志")
+                        .font(.headline)
+                        .foregroundStyle(AppTheme.textPrimary)
+                    Text("最近三天")
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.muted)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(AppTheme.muted)
+                }
+
+                if recentDays.isEmpty {
+                    Text("还没记录，点进来给今天打个 tag。")
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.muted)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    // 三块分别落在左/中/右三个位置：日期+标签 | 时间记录 | 心得。
+                    VStack(alignment: .leading, spacing: 12) {
+                        ForEach(recentDays) { row in
+                            journalDayRow(row)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            .padding(18)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(AppTheme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(AppTheme.stroke, lineWidth: 1)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("打开日志")
+    }
+
+    // MARK: - 待办卡（首页右侧）
+
+    /// 首页展示的待办：未完成的按优先级排前面，最多显示 6 条。
+    private var dashboardTodos: [TodoItem] {
+        todos
+            .filter { !$0.isDone }
+            .sorted { a, b in
+                if a.priorityValue.rank != b.priorityValue.rank {
+                    return a.priorityValue.rank < b.priorityValue.rank
+                }
+                return a.createdAt < b.createdAt
+            }
+    }
+
+    private var todoDashboardCard: some View {
+        let active = dashboardTodos
+        let shown = Array(active.prefix(6))
+
+        return VStack(alignment: .leading, spacing: 14) {
+            Button {
+                navigation.openTodos()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "checklist")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(AppTheme.accent)
+                    Text("待办")
+                        .font(.headline)
+                        .foregroundStyle(AppTheme.textPrimary)
+                    if !active.isEmpty {
+                        Text("\(active.count) 件")
+                            .font(.caption)
+                            .foregroundStyle(AppTheme.muted)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(AppTheme.muted)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help("打开待办清单")
+
+            if shown.isEmpty {
+                Text("没有待办，点进去加一条「我要做的事」。")
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.muted)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                VStack(spacing: 8) {
+                    ForEach(shown) { todo in
+                        dashboardTodoRow(todo)
+                    }
+                }
+                if active.count > shown.count {
+                    Text("还有 \(active.count - shown.count) 件…")
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.muted)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppTheme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(AppTheme.stroke, lineWidth: 1)
+        )
+    }
+
+    private func dashboardTodoRow(_ todo: TodoItem) -> some View {
+        HStack(alignment: .center, spacing: 10) {
+            Button {
+                toggleTodo(todo)
+            } label: {
+                Image(systemName: todo.isDone ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 16))
+                    .foregroundStyle(todo.isDone ? AppTheme.green : AppTheme.muted)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.hoverCue)
+            .help("勾选完成")
+
+            Text(todo.priorityValue.label)
+                .font(.system(size: 10, weight: .heavy, design: .rounded))
+                .foregroundStyle(todo.priorityValue.color)
+                .frame(width: 26, height: 18)
+                .background(todo.priorityValue.color.opacity(0.16), in: RoundedRectangle(cornerRadius: 5, style: .continuous))
+
+            Text(todo.title)
+                .font(.system(size: 13))
+                .foregroundStyle(AppTheme.textPrimary)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Image(systemName: todo.categoryValue.icon)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(todo.categoryValue.color)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(AppTheme.elevated.opacity(0.6), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+
+    private func toggleTodo(_ todo: TodoItem) {
+        todo.isDone.toggle()
+        todo.doneAt = todo.isDone ? Date() : nil
+        todo.updatedAt = Date()
+        try? modelContext.save()
+        AutoBackupService.snapshotThrottled(context: modelContext)
+    }
+
+    private func journalDayRow(_ row: DashboardDayRow) -> some View {
+        HStack(alignment: .top, spacing: 16) {
+            // 板块 1（左）：日期 + 标签
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(JournalDateFormat.dayLabel(row.day))
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundStyle(JournalDateFormat.isToday(row.day) ? AppTheme.accent : AppTheme.textPrimary)
+
+                if !row.tags.isEmpty {
+                    FlowLayout(spacing: 6, lineSpacing: 6) {
+                        ForEach(row.tags, id: \.self) { tag in
+                            Text(tag)
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(AppTheme.accent)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(AppTheme.accent.opacity(0.14), in: Capsule())
+                        }
+                    }
+                }
+            }
+            .frame(width: 220, alignment: .leading)
+
+            // 板块 2（右）：时间记录，铺满剩余宽度
+            Group {
+                if let summary = row.timeSummary {
+                    summaryLabel(icon: "clock", text: summary, color: AppTheme.accent)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func summaryLabel(icon: String, text: String, color: Color) -> some View {
+        HStack(alignment: .top, spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(color)
+                .padding(.top, 2)
+            Text(text)
+                .font(.system(size: 12.5))
+                .foregroundStyle(AppTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .multilineTextAlignment(.leading)
+        }
     }
 
     private var timelineAndUpcomingRow: some View {
@@ -1005,7 +1278,7 @@ struct DashboardView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .contentShape(Rectangle())
                         }
-                        .buttonStyle(.hoverCueContained)
+                        .buttonStyle(.hoverCueText)
                         .contextMenu {
                             if let company = app.company {
                                 Button("删除这家公司…", role: .destructive) {

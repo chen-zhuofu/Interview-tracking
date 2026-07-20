@@ -358,10 +358,9 @@ struct TimelineStripView: View {
     }
 
     private func dayCluster(day: Date, dayKey: String, events: [TimelineDisplayEvent]) -> some View {
-        let hovering = hoveredDayKey == dayKey || draggingNodeID != nil && hoveredDayKey == dayKey
-        let isToday = Calendar.current.isDateInToday(day)
-        // 只有今天默认展开；其他日期显示圆点，悬停才展开。
-        let showChips = !events.isEmpty && (hovering || isToday)
+        let hovering = hoveredDayKey == dayKey
+        // 默认一律圆点；当天只靠日期文字高亮。悬停才展开标签。
+        let showChips = !events.isEmpty && hovering
         return ZStack {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .fill(dropHighlightDayKey == dayKey ? AppTheme.accent.opacity(0.12) : Color.clear)
@@ -371,7 +370,7 @@ struct TimelineStripView: View {
             } else if showChips {
                 VStack(spacing: 4) {
                     ForEach(Array(events.prefix(8))) { event in
-                        interactiveChip(event, emphasize: isToday || hovering)
+                        interactiveChip(event, emphasize: true)
                     }
                     if events.count > 8 {
                         Text("+\(events.count - 8)")
@@ -388,9 +387,12 @@ struct TimelineStripView: View {
         .contentShape(Rectangle())
         .onHover { isHovering in
             withAnimation(.spring(response: 0.28, dampingFraction: 0.8)) {
-                if isHovering, !events.isEmpty || draggingNodeID != nil {
-                    hoveredDayKey = dayKey
-                } else if hoveredDayKey == dayKey, draggingNodeID == nil {
+                if isHovering {
+                    // 拖拽落点时也允许悬停高亮空日期。
+                    if !events.isEmpty || draggingNodeID != nil {
+                        hoveredDayKey = dayKey
+                    }
+                } else if hoveredDayKey == dayKey {
                     hoveredDayKey = nil
                 }
             }
@@ -505,7 +507,8 @@ struct TimelineStripView: View {
 
         draggingNodeID = nil
         dropHighlightDayKey = nil
-        hoveredDayKey = dayKey(targetStart)
+        // 不要拖完后一直展开标签；只有鼠标还在上面才展开。
+        hoveredDayKey = nil
         chat.recordLocalEdit(
             userText: "【时间线】把「\(node.application?.company?.name ?? "?")·\(node.title)」挪到 \(chineseDate(day))",
             assistantText: "已把节点日期改为 \(chineseDate(day))，其余信息不变。"

@@ -6,20 +6,14 @@ import AppKit
 struct InterviewTrackerApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
+    /// 用显式版本化 Schema + 迁移计划打开数据库，防止 SwiftData 自作主张静默清空。
+    let container: ModelContainer = AppModelContainerFactory.make()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
         }
-        .modelContainer(for: [
-            Company.self,
-            Application.self,
-            Interview.self,
-            TimelineEvent.self,
-            StageNode.self,
-            MediaAttachment.self,
-            ReadingItem.self,
-            CareerDocument.self
-        ])
+        .modelContainer(container)
     }
 }
 

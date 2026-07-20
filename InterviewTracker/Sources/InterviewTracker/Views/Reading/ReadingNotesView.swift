@@ -40,7 +40,8 @@ struct ReadingNotesView: View {
                 ContentUnavailableView("收藏不存在", systemImage: "questionmark.circle")
             }
         }
-        .background(AppTheme.background)
+        // Notes are wall-to-wall text; keep this page nearly opaque for readability.
+        .background(AppTheme.background.opacity(0.88))
         .onAppear { loadIfNeeded() }
         .onDisappear { persist() }
         .sheet(isPresented: $editingMeta) {
@@ -188,7 +189,7 @@ struct ReadingNotesView: View {
             .scrollContentBackground(.hidden)
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
-            .background(AppTheme.background)
+            .background(Color.clear)
             .onChange(of: text) { _, _ in
                 persist()
             }

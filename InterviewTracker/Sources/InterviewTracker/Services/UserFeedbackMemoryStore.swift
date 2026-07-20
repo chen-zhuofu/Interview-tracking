@@ -4,7 +4,7 @@ import Foundation
 struct UserFeedbackMemoryEntry: Codable, Equatable, Sendable, Identifiable {
     var id: UUID
     var createdAt: Date
-    /// chat | timeline | preference | correction
+    /// preference | correction | feedback
     var kind: String
     var text: String
     var companyHint: String?
@@ -86,6 +86,70 @@ enum UserFeedbackMemoryStore {
             print("UserFeedbackMemoryStore append failed: \(error.localizedDescription)")
             return false
         }
+    }
+
+    /// 用户明确说「记住 / feedback / memory」时，客户端直接落盘，不依赖模型调 tool。
+    @discardableResult
+    static func captureExplicit(from raw: String) -> Bool {
+        guard let entry = parseExplicitCapture(from: raw) else { return false }
+        return appendIfNew(kind: entry.kind, text: entry.text)
+    }
+
+    /// 解析用户消息里要记的内容；解析不出返回 nil。
+    static func parseExplicitCapture(from raw: String) -> UserFeedbackMemoryEntry? {
+        let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return nil }
+
+        let lower = text.lowercased()
+        let hasRemember =
+            text.contains("记住")
+            || lower.contains("记到 memory")
+            || lower.contains("记到memory")
+            || lower.contains("写入 memory")
+            || lower.contains("写入memory")
+            || lower.contains("记进 memory")
+            || lower.contains("记进memory")
+        guard hasRemember else { return nil }
+
+        var kind = "preference"
+        if lower.contains("feedback") || text.contains("反馈") {
+            kind = "feedback"
+        } else if text.contains("纠正") || text.contains("不要再") || text.contains("别再用") {
+            kind = "correction"
+        }
+
+        var body = text
+        if body.hasPrefix("记住：") || body.hasPrefix("记住:") {
+            body = String(body.dropFirst(3)).trimmingCharacters(in: .whitespacesAndNewlines)
+        } else {
+            let suffixes = [
+                "，记住 feedback", "，记住feedback", "，记住 memory", "，记住memory",
+                "，记到 memory", "，记到memory", "，写入 memory", "，记进 memory",
+                "记住 feedback", "记住feedback", "记住 memory", "记住memory",
+                "，记住", "。记住", " 记住", "记住"
+            ]
+            for suffix in suffixes.sorted(by: { $0.count > $1.count }) {
+                if let range = body.range(of: suffix, options: [.caseInsensitive, .backwards]) {
+                    let tail = body[range.upperBound...].trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard tail.isEmpty else { continue }
+                    body = String(body[..<range.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
+                    break
+                }
+            }
+        }
+
+        guard body.count >= 3 else { return nil }
+        return UserFeedbackMemoryEntry(kind: kind, text: body)
+    }
+
+    @discardableResult
+    static func appendIfNew(kind: String, text: String) -> Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+        if loadRecent(limit: 30).contains(where: { $0.text == trimmed && $0.kind == kind }) {
+            return false
+        }
+        return append(kind: kind, text: trimmed)
     }
 
     /// Newest-last order (file order). Returns the trailing `limit` entries.

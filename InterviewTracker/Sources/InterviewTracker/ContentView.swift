@@ -79,6 +79,8 @@ struct ContentView: View {
         }
         .onAppear {
             LegacyMigrator.runIfNeeded(in: modelContext)
+            // 兜底：若某张表被静默清空，从最新快照还原；随后存一份新快照。
+            AutoBackupService.runStartupGuard(context: modelContext)
         }
     }
 
@@ -134,6 +136,23 @@ struct ContentView: View {
             .padding(.leading, 16)
 
             Spacer()
+
+            Button {
+                if case .todos = navigation.current {
+                    navigation.goOverview()
+                } else {
+                    navigation.openTodos()
+                }
+            } label: {
+                let active: Bool = { if case .todos = navigation.current { return true }; return false }()
+                Image(systemName: "checklist")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(active ? AppTheme.accent : AppTheme.textSecondary)
+                    .frame(width: 32, height: 32)
+                    .background(AppTheme.elevated.opacity(0.7), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            }
+            .buttonStyle(.hoverCue)
+            .help("待办清单：我要做的事")
 
             Button {
                 if case .reading = navigation.current {
@@ -215,6 +234,10 @@ struct ContentView: View {
             ReadingNotesView(itemID: id)
         case .documents:
             DocumentVaultView()
+        case .journal:
+            JournalView()
+        case .todos:
+            TodoListView()
         }
     }
 }

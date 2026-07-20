@@ -58,6 +58,16 @@ public enum CompanyNameNormalizer {
         coreName(raw).lowercased()
     }
 
+    /// 模糊匹配：一个名字的比对键是另一个的「词前缀」就算同一家。
+    /// 例："sierra" ↔ "Sierra AI"、"google" ↔ "Google DeepMind"。
+    /// 用空格做词边界，避免 "open" 误命中 "openai" 这种半个词的情况。
+    public static func isWordPrefixMatch(_ a: String, _ b: String) -> Bool {
+        let ka = matchingKey(a)
+        let kb = matchingKey(b)
+        guard !ka.isEmpty, !kb.isEmpty, ka != kb else { return false }
+        return ka.hasPrefix(kb + " ") || kb.hasPrefix(ka + " ")
+    }
+
     /// Short label for charts (English core only).
     public static func chartLabel(_ raw: String) -> String {
         let core = coreName(raw)

@@ -4,7 +4,8 @@ enum DeepSeekClientError: LocalizedError {
     case missingAPIKey
     case httpStatus(Int, String)
     case emptyContent
-    case tooManyToolRounds
+    /// 超过工具轮数上限。带上已经调用过的工具记录，方便事后在 traces 里查问题。
+    case tooManyToolRounds([AgentToolTrace])
 
     var errorDescription: String? {
         switch self {
@@ -104,7 +105,7 @@ actor DeepSeekClient {
                 ])
             }
         }
-        throw DeepSeekClientError.tooManyToolRounds
+        throw DeepSeekClientError.tooManyToolRounds(toolTraces)
     }
 
     /// Free-form text completion (Markdown / code formatting).

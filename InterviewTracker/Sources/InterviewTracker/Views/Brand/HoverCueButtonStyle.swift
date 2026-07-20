@@ -6,6 +6,8 @@ enum HoverCueKind {
     case float
     /// Soft in-place cue that stays inside parent clips (list rows in cards).
     case contained
+    /// No box — just grow the content a little (company list rows).
+    case textGrow
 }
 
 struct HoverCueButtonStyle: ButtonStyle {
@@ -26,23 +28,27 @@ struct HoverCueButtonStyle: ButtonStyle {
         var body: some View {
             configuration.label
                 .background {
-                    RoundedRectangle(cornerRadius: kind == .contained ? 12 : 10, style: .continuous)
-                        .fill(AppTheme.accent.opacity(fillOpacity))
+                    if kind != .textGrow {
+                        RoundedRectangle(cornerRadius: kind == .contained ? 12 : 10, style: .continuous)
+                            .fill(AppTheme.accent.opacity(fillOpacity))
+                    }
                 }
                 .overlay {
-                    RoundedRectangle(cornerRadius: kind == .contained ? 12 : 10, style: .continuous)
-                        .stroke(AppTheme.accent.opacity(strokeOpacity), lineWidth: kind == .contained ? 1 : 1.5)
+                    if kind != .textGrow {
+                        RoundedRectangle(cornerRadius: kind == .contained ? 12 : 10, style: .continuous)
+                            .stroke(AppTheme.accent.opacity(strokeOpacity), lineWidth: kind == .contained ? 1 : 1.5)
+                    }
                 }
-                .scaleEffect(scale)
+                .scaleEffect(scale, anchor: kind == .textGrow ? .leading : .center)
                 .offset(y: floatOffset)
-                .brightness(isHovering && isEnabled ? (kind == .contained ? 0.06 : 0.12) : 0)
+                .brightness(isHovering && isEnabled ? brightness : 0)
                 .shadow(
                     color: AppTheme.accent.opacity(shadowOpacity),
-                    radius: kind == .contained ? 0 : 12,
-                    y: kind == .contained ? 0 : 4
+                    radius: kind == .contained || kind == .textGrow ? 0 : 12,
+                    y: kind == .contained || kind == .textGrow ? 0 : 4
                 )
                 .opacity(isEnabled ? 1 : 0.55)
-                .animation(.spring(response: 0.24, dampingFraction: 0.72), value: isHovering)
+                .animation(.spring(response: 0.24, dampingFraction: 0.82), value: isHovering)
                 .animation(.easeOut(duration: 0.1), value: configuration.isPressed)
                 .onHover { hovering in
                     isHovering = hovering
@@ -53,14 +59,30 @@ struct HoverCueButtonStyle: ButtonStyle {
                 }
         }
 
+        private var brightness: Double {
+            switch kind {
+            case .float: return 0.12
+            case .contained: return 0.06
+            case .textGrow: return 0.04
+            }
+        }
+
         private var fillOpacity: Double {
             guard isHovering && isEnabled else { return 0 }
-            return kind == .contained ? 0.06 : 0.14
+            switch kind {
+            case .float: return 0.14
+            case .contained: return 0.06
+            case .textGrow: return 0
+            }
         }
 
         private var strokeOpacity: Double {
             guard isHovering && isEnabled else { return 0 }
-            return kind == .contained ? 0.28 : 0.65
+            switch kind {
+            case .float: return 0.65
+            case .contained: return 0.28
+            case .textGrow: return 0
+            }
         }
 
         private var shadowOpacity: Double {
@@ -75,9 +97,19 @@ struct HoverCueButtonStyle: ButtonStyle {
 
         private var scale: CGFloat {
             guard isEnabled else { return 1 }
-            if configuration.isPressed { return kind == .contained ? 0.985 : 0.96 }
+            if configuration.isPressed {
+                switch kind {
+                case .float: return 0.96
+                case .contained: return 0.985
+                case .textGrow: return 0.99
+                }
+            }
             guard isHovering else { return 1 }
-            return kind == .contained ? 1 : 1.04
+            switch kind {
+            case .float: return 1.04
+            case .contained: return 1
+            case .textGrow: return 1.05
+            }
         }
 
         private func updateCursor(hovering: Bool) {
@@ -100,6 +132,7 @@ struct HoverCueButtonStyle: ButtonStyle {
 extension ButtonStyle where Self == HoverCueButtonStyle {
     static var hoverCue: HoverCueButtonStyle { HoverCueButtonStyle(kind: .float) }
     static var hoverCueContained: HoverCueButtonStyle { HoverCueButtonStyle(kind: .contained) }
+    static var hoverCueText: HoverCueButtonStyle { HoverCueButtonStyle(kind: .textGrow) }
 }
 
 private struct InteractiveCardHoverModifier: ViewModifier {

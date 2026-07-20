@@ -92,4 +92,19 @@ final class CompanyNameNormalizerTests: XCTestCase {
         XCTAssertEqual(CompanyNameNormalizer.canonicalize("nvidia"), "NVIDIA")
         XCTAssertEqual(CompanyNameNormalizer.canonicalize("sierra"), "Sierra")
     }
+
+    func testWordPrefixMatchesShortNameToFullName() {
+        // 短名认出带后缀的全名（防重复新建公司）。
+        XCTAssertTrue(CompanyNameNormalizer.isWordPrefixMatch("sierra", "Sierra AI"))
+        XCTAssertTrue(CompanyNameNormalizer.isWordPrefixMatch("Sierra AI", "sierra"))
+        XCTAssertTrue(CompanyNameNormalizer.isWordPrefixMatch("google", "Google DeepMind"))
+    }
+
+    func testWordPrefixDoesNotMatchHalfWord() {
+        // 不能把半个词当命中：open ≠ openai。
+        XCTAssertFalse(CompanyNameNormalizer.isWordPrefixMatch("open", "openai"))
+        XCTAssertFalse(CompanyNameNormalizer.isWordPrefixMatch("sierra", "sierraai"))
+        // 完全相等不算「前缀模糊」（交给精确匹配那条路）。
+        XCTAssertFalse(CompanyNameNormalizer.isWordPrefixMatch("sierra", "Sierra"))
+    }
 }

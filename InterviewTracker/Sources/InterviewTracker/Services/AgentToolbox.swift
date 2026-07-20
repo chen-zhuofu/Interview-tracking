@@ -8,6 +8,20 @@ import SwiftData
 enum AgentToolbox {
     static let placeholderPosition = "未命名岗位"
 
+    struct PendingWrite: Identifiable, Equatable {
+        let id: UUID
+        let toolName: String
+        let argumentsJSON: String
+        let preview: String
+
+        init(toolName: String, argumentsJSON: String, preview: String) {
+            self.id = UUID()
+            self.toolName = toolName
+            self.argumentsJSON = argumentsJSON
+            self.preview = preview
+        }
+    }
+
     struct ToolResult {
         let output: String
         /// Human-readable summary for the chat transcript / trace.
@@ -189,6 +203,171 @@ enum AgentToolbox {
                 "docID": ["type": "string"]
             ],
             required: ["docID"]
+        ),
+        tool(
+            name: "list_interview_insights",
+            description: "列出全部面试心得：insightID、标题、关联公司、正文摘要。改心得前先看这个。",
+            parameters: [:],
+            required: []
+        ),
+        tool(
+            name: "add_interview_insight",
+            description: """
+            记一条面试心得。用户面完某轮想记录感受、被问的题、复盘要点时用这个。\
+            body 写心得正文（用户原话为准，可整理但别编造）；title 可给个简短标题；\
+            company 可选，关联到某家公司。
+            """,
+            parameters: [
+                "title": ["type": "string", "description": "简短标题，如「NVIDIA · HR Call 复盘」"],
+                "company": ["type": "string", "description": "关联公司名（可选）"],
+                "body": ["type": "string", "description": "心得正文"]
+            ],
+            required: ["body"]
+        ),
+        tool(
+            name: "update_interview_insight",
+            description: "修改一条面试心得（先用 list_interview_insights 拿 insightID）。只传要改的字段。appendBody 会追加到正文末尾，不覆盖。",
+            parameters: [
+                "insightID": ["type": "string"],
+                "title": ["type": "string"],
+                "company": ["type": "string"],
+                "appendBody": ["type": "string", "description": "追加到正文末尾"]
+            ],
+            required: ["insightID"]
+        ),
+        tool(
+            name: "delete_interview_insight",
+            description: "删除一条面试心得（先用 list_interview_insights 拿 insightID）。仅当用户明确要求删除时使用。",
+            parameters: [
+                "insightID": ["type": "string"]
+            ],
+            required: ["insightID"]
+        ),
+        tool(
+            name: "list_activities",
+            description: """
+            查看某一天的活动时间记录：每段活动的 sessionID、名称、开始/结束时间、时长，\
+            以及按名称汇总的各项总时长。用户问「我今天 / 某天都干了什么、各花了多久」用这个。\
+            date 不传默认今天。
+            """,
+            parameters: [
+                "date": ["type": "string", "description": "YYYY-MM-DD，不传是今天"]
+            ],
+            required: []
+        ),
+        tool(
+            name: "start_activity",
+            description: """
+            开始一段活动。用户说「9点开始干活 / 学习 / 写代码」这类话时用这个。\
+            会自动把上一段还没结束的活动在这个时间点收尾，再开一段新的。\
+            category 用活动名（干活 / 工作统一叫「工作」；做饭、散步、看博客、复习等用用户说的词）。\
+            at 传开始时间 YYYY-MM-DDTHH:mm；用户没说几点就不传（默认现在）。
+            """,
+            parameters: [
+                "category": ["type": "string", "description": "活动名，如 工作 / 做饭 / 散步 / 看博客"],
+                "at": ["type": "string", "description": "开始时间 YYYY-MM-DDTHH:mm，不传为现在"],
+                "note": ["type": "string", "description": "可选细节，如「写日志功能」"],
+                "status": ["type": "string", "description": "可选状态，如 进行中 / 已完成 / 暂停 / 未完成"]
+            ],
+            required: ["category"]
+        ),
+        tool(
+            name: "stop_activity",
+            description: """
+            结束当前正在进行的活动。用户说「收 / 收工了 / 结束了 / 不干了 / 去睡觉了」这类\
+            只表示停下、后面没有立刻开始别的活动时用这个。at 传结束时间 YYYY-MM-DDTHH:mm，不传为现在。
+            """,
+            parameters: [
+                "at": ["type": "string", "description": "结束时间 YYYY-MM-DDTHH:mm，不传为现在"],
+                "note": ["type": "string", "description": "可选，补一句这段做了什么"]
+            ],
+            required: []
+        ),
+        tool(
+            name: "update_activity",
+            description: "修改一段活动记录（先用 list_activities 拿 sessionID）。只传要改的字段。endAt 传空字符串表示改回「进行中」。",
+            parameters: [
+                "sessionID": ["type": "string"],
+                "category": ["type": "string"],
+                "startAt": ["type": "string", "description": "YYYY-MM-DDTHH:mm"],
+                "endAt": ["type": "string", "description": "YYYY-MM-DDTHH:mm；空字符串=进行中"],
+                "note": ["type": "string"],
+                "status": ["type": "string", "description": "状态，如 进行中 / 已完成 / 暂停 / 未完成"]
+            ],
+            required: ["sessionID"]
+        ),
+        tool(
+            name: "delete_activity",
+            description: "删除一段活动记录（先用 list_activities 拿 sessionID）。仅当用户明确要求删除时使用。",
+            parameters: [
+                "sessionID": ["type": "string"]
+            ],
+            required: ["sessionID"]
+        ),
+        tool(
+            name: "list_todos",
+            description: "列出待办清单「我要做的事」：todoID、标题、优先级(P0-P3)、分类(生活/职业)、是否完成。改待办前先看这个。",
+            parameters: [:],
+            required: []
+        ),
+        tool(
+            name: "add_todo",
+            description: """
+            新增一条待办（「我要做的事」）。用户说「todo / 加个 todo / 提醒我做 X / 我要做 X」时必须用这个。\
+            用户没说优先级时：禁止调用本工具，先问 P0/P1/P2/P3，等用户回答后再加。\
+            category 不传默认 career。一句话里有多件事就分多次调用。
+            """,
+            parameters: [
+                "title": ["type": "string", "description": "要做的事，用用户原话"],
+                "priority": [
+                    "type": "string",
+                    "enum": ["p0", "p1", "p2", "p3"],
+                    "description": "p0 最紧急 → p3 最不急；用户没说时不要传，先问"
+                ],
+                "category": [
+                    "type": "string",
+                    "enum": ["life", "career"],
+                    "description": "life=生活 career=职业；不传默认 career"
+                ]
+            ],
+            required: ["title", "priority"]
+        ),
+        tool(
+            name: "update_todo",
+            description: "修改一条待办（先用 list_todos 拿 todoID）。只传要改的字段。isDone=true 标记完成。",
+            parameters: [
+                "todoID": ["type": "string"],
+                "title": ["type": "string"],
+                "priority": ["type": "string", "enum": ["p0", "p1", "p2", "p3"]],
+                "category": ["type": "string", "enum": ["life", "career"]],
+                "isDone": ["type": "boolean", "description": "true=已完成 false=未完成"]
+            ],
+            required: ["todoID"]
+        ),
+        tool(
+            name: "delete_todo",
+            description: "删除一条待办（先用 list_todos 拿 todoID）。仅当用户明确要求删除时使用。",
+            parameters: [
+                "todoID": ["type": "string"]
+            ],
+            required: ["todoID"]
+        ),
+        tool(
+            name: "remember_preference",
+            description: """
+            把用户明确说的长期偏好 / 规则 / 纠正写入跨会话记忆。\
+            用户说「每次…都要…」「以后…」「记住…」「不要再…」这类可复用规则时必须立刻调用。\
+            普通聊天、一次性请求、临时问题不要记。kind：preference=偏好规则，correction=纠正错误做法。
+            """,
+            parameters: [
+                "text": ["type": "string", "description": "用一两句中文写清规则本身，不要写闲聊"],
+                "kind": [
+                    "type": "string",
+                    "enum": ["preference", "correction", "feedback"],
+                    "description": "preference=长期偏好/规则；correction=纠正错误做法；feedback=用户反馈"
+                ]
+            ],
+            required: ["text"]
         )
     ]
 
@@ -213,6 +392,49 @@ enum AgentToolbox {
     }
 
     // MARK: - Dispatch
+
+    private static let writeToolNames: Set<String> = [
+        "upsert_company",
+        "update_application",
+        "add_stage_node",
+        "update_stage_node",
+        "delete_stage_node",
+        "delete_company",
+        "add_reading_item",
+        "update_reading_item",
+        "delete_reading_item",
+        "update_document",
+        "delete_document",
+        "add_interview_insight",
+        "update_interview_insight",
+        "delete_interview_insight",
+        "start_activity",
+        "stop_activity",
+        "update_activity",
+        "delete_activity",
+        "add_todo",
+        "update_todo",
+        "delete_todo"
+    ]
+
+    static func isWriteTool(_ name: String) -> Bool {
+        writeToolNames.contains(name)
+    }
+
+    static func prepareWrite(
+        name: String,
+        argumentsJSON: String,
+        in context: ModelContext
+    ) -> PendingWrite {
+        let args = (try? JSONSerialization.jsonObject(
+            with: Data(argumentsJSON.utf8)
+        ) as? [String: Any]) ?? [:]
+        return PendingWrite(
+            toolName: name,
+            argumentsJSON: argumentsJSON,
+            preview: previewWrite(name: name, args: args, in: context)
+        )
+    }
 
     static func execute(
         name: String,
@@ -241,6 +463,20 @@ enum AgentToolbox {
             case "list_documents": return try listDocuments(in: context)
             case "update_document": return try updateDocument(args, in: context)
             case "delete_document": return try deleteDocument(args, in: context)
+            case "list_interview_insights": return try listInterviewInsights(in: context)
+            case "add_interview_insight": return try addInterviewInsight(args, in: context)
+            case "update_interview_insight": return try updateInterviewInsight(args, in: context)
+            case "delete_interview_insight": return try deleteInterviewInsight(args, in: context)
+            case "list_activities": return try listActivities(args, in: context)
+            case "start_activity": return try startActivity(args, in: context)
+            case "stop_activity": return try stopActivity(args, in: context)
+            case "update_activity": return try updateActivity(args, in: context)
+            case "delete_activity": return try deleteActivity(args, in: context)
+            case "list_todos": return try listTodos(in: context)
+            case "add_todo": return try addTodo(args, in: context)
+            case "update_todo": return try updateTodo(args, in: context)
+            case "delete_todo": return try deleteTodo(args, in: context)
+            case "remember_preference": return rememberPreference(args)
             default:
                 return ToolResult(output: #"{"error":"unknown tool"}"#, summary: nil)
             }
@@ -250,6 +486,170 @@ enum AgentToolbox {
                 summary: nil
             )
         }
+    }
+
+    private static func previewWrite(
+        name: String,
+        args: [String: Any],
+        in context: ModelContext
+    ) -> String {
+        switch name {
+        case "upsert_company":
+            let raw = args["name"] as? String ?? "未命名公司"
+            let company = try? findCompany(raw, in: context)
+            let action = company == nil ? "新增公司" : "更新公司"
+            return "\(action)「\(CompanyNameNormalizer.canonicalize(raw))」\(fieldSummary(args, excluding: ["name"]))"
+
+        case "update_application":
+            let company = args["companyName"] as? String ?? "未知公司"
+            return "更新「\(CompanyNameNormalizer.canonicalize(company))」的机会信息\(fieldSummary(args, excluding: ["companyName"]))"
+
+        case "add_stage_node":
+            let company = args["companyName"] as? String ?? "未知公司"
+            let title = args["title"] as? String ?? "未命名阶段"
+            let date = args["date"] as? String ?? "日期未提供"
+            return "给「\(CompanyNameNormalizer.canonicalize(company))」新增阶段「\(title)」· \(date)"
+
+        case "update_stage_node":
+            let node = try? findNode(args["nodeID"] as? String, in: context)
+            let label = node.map { "\($0.application?.company?.name ?? "?") · \($0.title)" } ?? "未知阶段"
+            return "更新阶段「\(label)」\(fieldSummary(args, excluding: ["nodeID"]))"
+
+        case "delete_stage_node":
+            let node = try? findNode(args["nodeID"] as? String, in: context)
+            let label = node.map { "\($0.application?.company?.name ?? "?") · \($0.title)" } ?? "未知阶段"
+            return "删除阶段「\(label)」"
+
+        case "delete_company":
+            let raw = args["companyName"] as? String ?? "未知公司"
+            let company = try? findCompany(raw, in: context)
+            let appCount = company?.applications?.count ?? 0
+            let nodeCount = company?.applications?
+                .compactMap(\.stageNodes)
+                .reduce(0) { $0 + $1.count } ?? 0
+            return "删除公司「\(CompanyNameNormalizer.canonicalize(raw))」及其 \(appCount) 个机会、\(nodeCount) 个阶段"
+
+        case "add_reading_item":
+            return "新增阅读收藏「\(args["title"] as? String ?? "未命名")」"
+
+        case "update_reading_item":
+            let item = try? findReadingItem(args["itemID"] as? String, in: context)
+            return "更新阅读收藏「\(item?.title ?? "未知条目")」\(fieldSummary(args, excluding: ["itemID"]))"
+
+        case "delete_reading_item":
+            let item = try? findReadingItem(args["itemID"] as? String, in: context)
+            return "删除阅读收藏「\(item?.title ?? "未知条目")」及其本地文件"
+
+        case "update_document":
+            let doc = try? findDocument(args["docID"] as? String, in: context)
+            return "更新资料「\(doc?.title ?? "未知资料")」\(fieldSummary(args, excluding: ["docID"]))"
+
+        case "delete_document":
+            let doc = try? findDocument(args["docID"] as? String, in: context)
+            return "删除资料「\(doc?.title ?? "未知资料")」及其本地文件"
+
+        case "add_interview_insight":
+            let company = (args["company"] as? String).map { "\(CompanyNameNormalizer.canonicalize($0)) · " } ?? ""
+            let title = args["title"] as? String
+            let label = title?.isEmpty == false ? title! : (args["body"] as? String).map { String($0.prefix(20)) } ?? "面试心得"
+            return "新增面试心得「\(company)\(label)」"
+
+        case "update_interview_insight":
+            let insight = try? findInsight(args["insightID"] as? String, in: context)
+            return "更新面试心得「\(insight?.displayTitle ?? "未知心得")」\(fieldSummary(args, excluding: ["insightID"]))"
+
+        case "delete_interview_insight":
+            let insight = try? findInsight(args["insightID"] as? String, in: context)
+            return "删除面试心得「\(insight?.displayTitle ?? "未知心得")」"
+
+        case "start_activity":
+            let cat = args["category"] as? String ?? "活动"
+            let when = ISO8601Flexible.parse(args["at"] as? String).map { activityClock($0) } ?? "现在"
+            return "开始活动「\(cat)」· \(when)"
+
+        case "stop_activity":
+            let when = ISO8601Flexible.parse(args["at"] as? String).map { activityClock($0) } ?? "现在"
+            let open = (try? currentOpenSession(in: context)) ?? nil
+            return "结束活动「\(open?.category ?? "当前活动")」· \(when)"
+
+        case "update_activity":
+            let session = try? findActivity(args["sessionID"] as? String, in: context)
+            return "更新活动「\(session?.category ?? "未知")」\(fieldSummary(args, excluding: ["sessionID"]))"
+
+        case "delete_activity":
+            let session = try? findActivity(args["sessionID"] as? String, in: context)
+            return "删除活动「\(session?.category ?? "未知")」"
+
+        case "add_todo":
+            let title = args["title"] as? String ?? "待办"
+            let p = (args["priority"] as? String).flatMap(TodoPriority.init(rawValue:)) ?? .p2
+            let c = (args["category"] as? String).flatMap(TodoCategory.init(rawValue:)) ?? .career
+            return "新增待办「\(title)」· \(p.label) · \(c.label)"
+
+        case "update_todo":
+            let todo = try? findTodo(args["todoID"] as? String, in: context)
+            if let done = args["isDone"] as? Bool {
+                return "\(done ? "完成" : "取消完成")待办「\(todo?.title ?? "未知待办")」"
+            }
+            return "更新待办「\(todo?.title ?? "未知待办")」\(fieldSummary(args, excluding: ["todoID"]))"
+
+        case "delete_todo":
+            let todo = try? findTodo(args["todoID"] as? String, in: context)
+            return "删除待办「\(todo?.title ?? "未知待办")」"
+
+        default:
+            return "执行写入操作 \(name)"
+        }
+    }
+
+    private static func fieldSummary(
+        _ args: [String: Any],
+        excluding excluded: Set<String>
+    ) -> String {
+        let labels: [String: String] = [
+            "website": "网站",
+            "contactPerson": "联系人",
+            "contactEmail": "联系邮箱",
+            "opinion": "看法",
+            "companyDescription": "公司简介",
+            "notes": "备注",
+            "position": "岗位",
+            "desireLevel": "想去程度",
+            "appliedDate": "投递日期",
+            "feedback": "反馈",
+            "jobDescriptionURL": "JD 链接",
+            "jobDescriptionText": "JD 内容",
+            "title": "标题",
+            "date": "日期",
+            "bucket": "状态",
+            "isInterview": "计为面试",
+            "note": "备注",
+            "url": "链接",
+            "kind": "类型",
+            "tags": "标签",
+            "appendReadingNotes": "追加阅读笔记",
+            "isRead": "已读状态",
+            "targetCompany": "关联公司",
+            "company": "关联公司",
+            "body": "正文",
+            "appendBody": "追加正文",
+            "category": "活动",
+            "startAt": "开始",
+            "endAt": "结束",
+            "at": "时间",
+            "status": "状态",
+            "priority": "优先级",
+            "isDone": "完成状态"
+        ]
+        let values = args.keys
+            .filter { !excluded.contains($0) }
+            .sorted()
+            .map { key -> String in
+                let value = args[key].map { String(describing: $0) } ?? ""
+                let compact = value.count > 80 ? String(value.prefix(80)) + "…" : value
+                return "\(labels[key] ?? key)：\(compact)"
+            }
+        return values.isEmpty ? "" : "（\(values.joined(separator: "；"))）"
     }
 
     // MARK: - Web tools
@@ -731,6 +1131,363 @@ enum AgentToolbox {
         return try context.fetch(descriptor).first
     }
 
+    // MARK: - Interview insight tools
+
+    private static func listInterviewInsights(in context: ModelContext) throws -> ToolResult {
+        let insights = try context.fetch(FetchDescriptor<InterviewInsight>())
+        let rows: [[String: Any]] = insights
+            .sorted { $0.updatedAt > $1.updatedAt }
+            .map { insight in
+                var row: [String: Any] = [
+                    "insightID": insight.id.uuidString,
+                    "title": insight.displayTitle
+                ]
+                if let company = insight.companyName, !company.isEmpty { row["company"] = company }
+                if !insight.body.isEmpty { row["body"] = String(insight.body.prefix(200)) }
+                return row
+            }
+        return ToolResult(output: jsonString(rows), summary: nil)
+    }
+
+    private static func addInterviewInsight(
+        _ args: [String: Any],
+        in context: ModelContext
+    ) throws -> ToolResult {
+        guard let body = (args["body"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !body.isEmpty else {
+            return ToolResult(output: #"{"error":"body required"}"#, summary: nil)
+        }
+        let company = (args["company"] as? String)?.trimmingCharacters(in: .whitespaces)
+        let insight = InterviewInsight(
+            title: (args["title"] as? String) ?? "",
+            companyName: (company?.isEmpty == false) ? CompanyNameNormalizer.canonicalize(company!) : nil,
+            body: body
+        )
+        context.insert(insight)
+        try context.save()
+        return ToolResult(
+            output: #"{"ok":true,"insightID":"\#(insight.id.uuidString)"}"#,
+            summary: "面试心得「\(insight.displayTitle)」"
+        )
+    }
+
+    private static func updateInterviewInsight(
+        _ args: [String: Any],
+        in context: ModelContext
+    ) throws -> ToolResult {
+        guard let insight = try findInsight(args["insightID"] as? String, in: context) else {
+            return ToolResult(output: #"{"error":"insight not found，先 list_interview_insights 拿 insightID"}"#, summary: nil)
+        }
+        if let title = args["title"] as? String { insight.title = title }
+        if let company = (args["company"] as? String)?.trimmingCharacters(in: .whitespaces) {
+            insight.companyName = company.isEmpty ? nil : CompanyNameNormalizer.canonicalize(company)
+        }
+        if let extra = (args["appendBody"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !extra.isEmpty {
+            insight.body = insight.body.isEmpty ? extra : insight.body + "\n\n" + extra
+        }
+        insight.updatedAt = Date()
+        try context.save()
+        return ToolResult(output: #"{"ok":true}"#, summary: "更新面试心得「\(insight.displayTitle)」")
+    }
+
+    private static func deleteInterviewInsight(
+        _ args: [String: Any],
+        in context: ModelContext
+    ) throws -> ToolResult {
+        guard let insight = try findInsight(args["insightID"] as? String, in: context) else {
+            return ToolResult(output: #"{"error":"insight not found"}"#, summary: nil)
+        }
+        let label = insight.displayTitle
+        context.delete(insight)
+        try context.save()
+        return ToolResult(output: #"{"ok":true}"#, summary: "删除面试心得「\(label)」")
+    }
+
+    private static func findInsight(_ raw: String?, in context: ModelContext) throws -> InterviewInsight? {
+        guard let raw, let id = UUID(uuidString: raw) else { return nil }
+        var descriptor = FetchDescriptor<InterviewInsight>(predicate: #Predicate { $0.id == id })
+        descriptor.fetchLimit = 1
+        return try context.fetch(descriptor).first
+    }
+
+    // MARK: - Todo tools
+
+    private static func listTodos(in context: ModelContext) throws -> ToolResult {
+        let todos = try context.fetch(FetchDescriptor<TodoItem>())
+        let rows: [[String: Any]] = todos
+            .sorted { a, b in
+                if a.isDone != b.isDone { return !a.isDone }
+                if a.priorityValue.rank != b.priorityValue.rank {
+                    return a.priorityValue.rank < b.priorityValue.rank
+                }
+                return a.createdAt < b.createdAt
+            }
+            .map { todo in
+                [
+                    "todoID": todo.id.uuidString,
+                    "title": todo.title,
+                    "priority": todo.priorityValue.label,
+                    "category": todo.categoryValue.label,
+                    "isDone": todo.isDone
+                ]
+            }
+        return ToolResult(output: jsonString(rows), summary: nil)
+    }
+
+    private static func addTodo(
+        _ args: [String: Any],
+        in context: ModelContext
+    ) throws -> ToolResult {
+        guard let title = (args["title"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !title.isEmpty else {
+            return ToolResult(output: #"{"error":"title required"}"#, summary: nil)
+        }
+        // 没说优先级就拒绝写入，逼着先问用户，不要静默默认成 P2。
+        guard let priority = (args["priority"] as? String).flatMap(TodoPriority.init(rawValue:)) else {
+            return ToolResult(
+                output: #"{"error":"priority required：先问用户 P0/P1/P2/P3，再 add_todo"}"#,
+                summary: nil
+            )
+        }
+        let category = (args["category"] as? String).flatMap(TodoCategory.init(rawValue:)) ?? .career
+        let todo = TodoItem(title: title, priority: priority, category: category)
+        context.insert(todo)
+        try context.save()
+        AutoBackupService.snapshotThrottled(context: context)
+        return ToolResult(
+            output: #"{"ok":true,"todoID":"\#(todo.id.uuidString)"}"#,
+            summary: "待办「\(title)」· \(priority.label) · \(category.label)"
+        )
+    }
+
+    private static func updateTodo(
+        _ args: [String: Any],
+        in context: ModelContext
+    ) throws -> ToolResult {
+        guard let todo = try findTodo(args["todoID"] as? String, in: context) else {
+            return ToolResult(output: #"{"error":"todo not found，先 list_todos 拿 todoID"}"#, summary: nil)
+        }
+        if let title = (args["title"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !title.isEmpty {
+            todo.title = title
+        }
+        if let p = (args["priority"] as? String).flatMap(TodoPriority.init(rawValue:)) {
+            todo.priority = p.rawValue
+        }
+        if let c = (args["category"] as? String).flatMap(TodoCategory.init(rawValue:)) {
+            todo.category = c.rawValue
+        }
+        if let done = args["isDone"] as? Bool {
+            todo.isDone = done
+            todo.doneAt = done ? Date() : nil
+        }
+        todo.updatedAt = Date()
+        try context.save()
+        AutoBackupService.snapshotThrottled(context: context)
+        return ToolResult(output: #"{"ok":true}"#, summary: "更新待办「\(todo.title)」")
+    }
+
+    private static func deleteTodo(
+        _ args: [String: Any],
+        in context: ModelContext
+    ) throws -> ToolResult {
+        guard let todo = try findTodo(args["todoID"] as? String, in: context) else {
+            return ToolResult(output: #"{"error":"todo not found"}"#, summary: nil)
+        }
+        let label = todo.title
+        context.delete(todo)
+        try context.save()
+        AutoBackupService.snapshotThrottled(context: context)
+        return ToolResult(output: #"{"ok":true}"#, summary: "删除待办「\(label)」")
+    }
+
+    private static func findTodo(_ raw: String?, in context: ModelContext) throws -> TodoItem? {
+        guard let raw, let id = UUID(uuidString: raw) else { return nil }
+        var descriptor = FetchDescriptor<TodoItem>(predicate: #Predicate { $0.id == id })
+        descriptor.fetchLimit = 1
+        return try context.fetch(descriptor).first
+    }
+
+    /// 立刻写入跨会话记忆，不走批准卡（不是数据库写）。
+    private static func rememberPreference(_ args: [String: Any]) -> ToolResult {
+        guard let text = (args["text"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !text.isEmpty else {
+            return ToolResult(output: #"{"error":"text required"}"#, summary: nil)
+        }
+        let kindRaw = (args["kind"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "preference"
+        let kind: String
+        switch kindRaw {
+        case "correction": kind = "correction"
+        case "feedback": kind = "feedback"
+        default: kind = "preference"
+        }
+        let ok = UserFeedbackMemoryStore.appendIfNew(kind: kind, text: text)
+        guard ok else {
+            return ToolResult(output: #"{"error":"memory write failed"}"#, summary: nil)
+        }
+        return ToolResult(
+            output: #"{"ok":true,"kind":"\#(kind)"}"#,
+            summary: "已记入记忆（\(kind)）"
+        )
+    }
+
+    // MARK: - Activity time-tracking tools
+
+    private static func listActivities(
+        _ args: [String: Any],
+        in context: ModelContext
+    ) throws -> ToolResult {
+        let cal = Calendar.current
+        let day = ISO8601Flexible.parse(args["date"] as? String).map { cal.startOfDay(for: $0) }
+            ?? cal.startOfDay(for: Date())
+        let sessions = try context.fetch(FetchDescriptor<ActivitySession>())
+            .filter { cal.isDate($0.startAt, inSameDayAs: day) }
+            .sorted { $0.startAt < $1.startAt }
+
+        let rows: [[String: Any]] = sessions.map { session in
+            var row: [String: Any] = [
+                "sessionID": session.id.uuidString,
+                "category": session.category,
+                "start": dateTimeString(session.startAt),
+                "durationMinutes": Int(session.durationSeconds / 60),
+                "ongoing": session.isOngoing
+            ]
+            if let end = session.endAt { row["end"] = dateTimeString(end) }
+            if !session.note.isEmpty { row["note"] = session.note }
+            if !session.status.isEmpty { row["status"] = session.status }
+            return row
+        }
+        var totals: [String: Int] = [:]
+        for session in sessions {
+            totals[session.category, default: 0] += Int(session.durationSeconds / 60)
+        }
+        let payload: [String: Any] = [
+            "date": dayString(day),
+            "sessions": rows,
+            "totalsMinutes": totals
+        ]
+        return ToolResult(output: jsonString(payload), summary: nil)
+    }
+
+    private static func startActivity(
+        _ args: [String: Any],
+        in context: ModelContext
+    ) throws -> ToolResult {
+        guard let category = (args["category"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !category.isEmpty else {
+            return ToolResult(output: #"{"error":"category required"}"#, summary: nil)
+        }
+        let start = ISO8601Flexible.parse(args["at"] as? String) ?? Date()
+
+        // 先把上一段还没结束的活动在这个时间点收尾。
+        if let open = try currentOpenSession(in: context), open.startAt < start {
+            open.endAt = start
+            open.updatedAt = Date()
+        }
+
+        let session = ActivitySession(
+            category: category,
+            startAt: start,
+            note: (args["note"] as? String) ?? "",
+            status: (args["status"] as? String) ?? ""
+        )
+        context.insert(session)
+        try context.save()
+        return ToolResult(
+            output: #"{"ok":true,"sessionID":"\#(session.id.uuidString)"}"#,
+            summary: "开始「\(category)」\(activityClock(start))"
+        )
+    }
+
+    private static func stopActivity(
+        _ args: [String: Any],
+        in context: ModelContext
+    ) throws -> ToolResult {
+        guard let open = try currentOpenSession(in: context) else {
+            return ToolResult(output: #"{"error":"没有正在进行的活动"}"#, summary: nil)
+        }
+        let end = ISO8601Flexible.parse(args["at"] as? String) ?? Date()
+        let clamped = max(open.startAt, end)
+        open.endAt = clamped
+        if let note = (args["note"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !note.isEmpty {
+            open.note = mergeText(open.note, note)
+        }
+        open.updatedAt = Date()
+        try context.save()
+        return ToolResult(
+            output: #"{"ok":true}"#,
+            summary: "结束「\(open.category)」\(activityClock(clamped)) · 共 \(ActivityDuration.label(open.durationSeconds))"
+        )
+    }
+
+    private static func updateActivity(
+        _ args: [String: Any],
+        in context: ModelContext
+    ) throws -> ToolResult {
+        guard let session = try findActivity(args["sessionID"] as? String, in: context) else {
+            return ToolResult(output: #"{"error":"session not found，先 list_activities 拿 sessionID"}"#, summary: nil)
+        }
+        if let category = (args["category"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !category.isEmpty {
+            session.category = category
+        }
+        if let start = ISO8601Flexible.parse(args["startAt"] as? String) {
+            session.startAt = start
+        }
+        if let endRaw = args["endAt"] as? String {
+            if endRaw.trimmingCharacters(in: .whitespaces).isEmpty {
+                session.endAt = nil
+            } else if let end = ISO8601Flexible.parse(endRaw) {
+                session.endAt = end
+            }
+        }
+        if let note = args["note"] as? String {
+            session.note = note
+        }
+        if let status = args["status"] as? String {
+            session.status = status
+        }
+        session.updatedAt = Date()
+        try context.save()
+        return ToolResult(output: #"{"ok":true}"#, summary: "更新活动「\(session.category)」")
+    }
+
+    private static func deleteActivity(
+        _ args: [String: Any],
+        in context: ModelContext
+    ) throws -> ToolResult {
+        guard let session = try findActivity(args["sessionID"] as? String, in: context) else {
+            return ToolResult(output: #"{"error":"session not found"}"#, summary: nil)
+        }
+        let label = session.category
+        context.delete(session)
+        try context.save()
+        return ToolResult(output: #"{"ok":true}"#, summary: "删除活动「\(label)」")
+    }
+
+    private static func currentOpenSession(in context: ModelContext) throws -> ActivitySession? {
+        try context.fetch(FetchDescriptor<ActivitySession>())
+            .filter { $0.endAt == nil }
+            .sorted { $0.startAt > $1.startAt }
+            .first
+    }
+
+    private static func findActivity(_ raw: String?, in context: ModelContext) throws -> ActivitySession? {
+        guard let raw, let id = UUID(uuidString: raw) else { return nil }
+        var descriptor = FetchDescriptor<ActivitySession>(predicate: #Predicate { $0.id == id })
+        descriptor.fetchLimit = 1
+        return try context.fetch(descriptor).first
+    }
+
+    private static func activityClock(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "zh_CN")
+        f.dateFormat = Calendar.current.isDateInToday(date) ? "HH:mm" : "M月d日 HH:mm"
+        return f.string(from: date)
+    }
+
     // MARK: - Lookup helpers
 
     static func findCompany(_ raw: String?, in context: ModelContext) throws -> Company? {
@@ -743,9 +1500,21 @@ enum AgentToolbox {
             CompanyNameNormalizer.matchingKey(raw),
             CompanyNameNormalizer.matchingKey(canonical)
         ])
-        return all.first {
+
+        // 1) 精确：比对键完全相等（优先，避免抢过完全同名的公司）。
+        if let exact = all.first(where: {
             keys.contains(CompanyNameNormalizer.matchingKey($0.name))
                 || keys.contains(CompanyNameNormalizer.matchingKey(CompanyNameNormalizer.canonicalize($0.name)))
+        }) {
+            return exact
+        }
+
+        // 2) 词前缀模糊：如「sierra」认出已存的「Sierra AI」，避免重复新建。
+        return all.first { company in
+            let names = [company.name, CompanyNameNormalizer.canonicalize(company.name)]
+            return keys.contains { key in
+                names.contains { CompanyNameNormalizer.isWordPrefixMatch(key, $0) }
+            }
         }
     }
 

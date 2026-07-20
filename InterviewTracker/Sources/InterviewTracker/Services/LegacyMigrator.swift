@@ -67,9 +67,45 @@ enum LegacyMigrator {
                 print("LegacyMigrator isInterview backfill failed: \(error.localizedDescription)")
             }
         }
+        if !UserDefaults.standard.bool(forKey: journalTagSeedKey) {
+            do {
+                let existing = try context.fetch(FetchDescriptor<JournalTag>())
+                if existing.isEmpty {
+                    for (index, name) in JournalTag.defaults.enumerated() {
+                        context.insert(JournalTag(name: name, sortOrder: index))
+                    }
+                    try context.save()
+                }
+                UserDefaults.standard.set(true, forKey: journalTagSeedKey)
+            } catch {
+                print("LegacyMigrator journal tag seed failed: \(error.localizedDescription)")
+            }
+        }
+        if !UserDefaults.standard.bool(forKey: journalLinesMigrationKey) {
+            do {
+                for entry in try context.fetch(FetchDescriptor<JournalEntry>()) where entry.linesData == nil {
+                    var lines = entry.tagList.map { JournalLine(tag: $0) }
+                    let notes = entry.notes.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !notes.isEmpty {
+                        if lines.isEmpty {
+                            lines = [JournalLine(tag: "备注", text: notes)]
+                        } else {
+                            lines[lines.count - 1].text = notes
+                        }
+                    }
+                    entry.lines = lines
+                }
+                try context.save()
+                UserDefaults.standard.set(true, forKey: journalLinesMigrationKey)
+            } catch {
+                print("LegacyMigrator journal lines migration failed: \(error.localizedDescription)")
+            }
+        }
     }
 
     private static let interviewBackfillKey = "stageNodeIsInterviewBackfill_v1"
+    private static let journalTagSeedKey = "journalTagSeed_v1"
+    private static let journalLinesMigrationKey = "journalLinesMigration_v1"
 
     @MainActor
     private static func migrate(in context: ModelContext) throws {

@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import AppKit
+import UniformTypeIdentifiers
 
 struct ChatPanelView: View {
     @ObservedObject var viewModel: ChatViewModel
@@ -53,28 +54,21 @@ struct ChatPanelView: View {
 
     private var expandedHeader: some View {
         HStack {
-            Button {
-                dismissChat()
-            } label: {
-                HStack {
-                    Text("聊天记录")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(ChatTheme.secondaryText)
-                    Spacer(minLength: 8)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .help("收起聊天")
+            Text("聊天记录")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(ChatTheme.secondaryText)
+
+            Spacer(minLength: 8)
 
             Button {
                 viewModel.showSettings = true
             } label: {
                 Image(systemName: "gearshape.fill")
                     .font(.system(size: 12, weight: .medium))
+                    .frame(width: 24, height: 24)
+                    .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.hoverCueContained)
             .foregroundStyle(ChatTheme.secondaryText)
             .help("API Key 设置")
 
@@ -83,8 +77,10 @@ struct ChatPanelView: View {
             } label: {
                 Image(systemName: "chevron.down")
                     .font(.system(size: 12, weight: .semibold))
+                    .frame(width: 24, height: 24)
+                    .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.hoverCueContained)
             .foregroundStyle(ChatTheme.secondaryText)
             .help("收起聊天（Esc）")
         }
@@ -104,6 +100,10 @@ struct ChatPanelView: View {
                     ForEach(viewModel.messages) { message in
                         messageBubble(message)
                             .id(message.id)
+                    }
+                    if let approval = viewModel.pendingApproval {
+                        approvalCard(approval)
+                            .id(approval.id)
                     }
                     if viewModel.isSending {
                         HStack(spacing: 8) {
@@ -131,7 +131,64 @@ struct ChatPanelView: View {
                     withAnimation { proxy.scrollTo("typing", anchor: .bottom) }
                 }
             }
+            .onChange(of: viewModel.pendingApproval?.id) { _, id in
+                if let id {
+                    withAnimation { proxy.scrollTo(id, anchor: .bottom) }
+                }
+            }
         }
+    }
+
+    private func approvalCard(_ approval: PendingAgentApproval) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 7) {
+                Image(systemName: "checkmark.shield")
+                    .foregroundStyle(AppTheme.orange)
+                Text("批准后才会写入")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(ChatTheme.primaryText)
+                Spacer()
+                Text("\(approval.writes.count) 项")
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(ChatTheme.secondaryText)
+            }
+
+            VStack(alignment: .leading, spacing: 7) {
+                ForEach(Array(approval.writes.enumerated()), id: \.element.id) { index, write in
+                    HStack(alignment: .top, spacing: 7) {
+                        Text("\(index + 1).")
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(ChatTheme.secondaryText)
+                        Text(write.preview)
+                            .font(.caption)
+                            .foregroundStyle(ChatTheme.primaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+
+            HStack {
+                Button("取消") {
+                    viewModel.rejectPendingWrites()
+                }
+                .buttonStyle(.bordered)
+
+                Spacer()
+
+                Button("批准并执行") {
+                    Task { await viewModel.approvePendingWrites(using: modelContext) }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(AppTheme.accent)
+                .foregroundStyle(.black)
+            }
+        }
+        .padding(12)
+        .background(AppTheme.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(AppTheme.orange.opacity(0.35), lineWidth: 1)
+        )
     }
 
     private func messageBubble(_ message: ChatMessage) -> some View {
@@ -157,46 +214,122 @@ struct ChatPanelView: View {
         }
     }
 
-    private var inputBar: some View {
-        HStack(alignment: .bottom, spacing: 10) {
-            TextField("", text: $viewModel.draft, axis: .vertical)
-                .textFieldStyle(.plain)
-                .font(.system(size: 14))
-                .foregroundStyle(ChatTheme.primaryText)
-                .lineLimit(1...5)
-                .focused($inputFocused)
-                .onSubmit {
-                    Task { await viewModel.send(using: modelContext) }
-                }
-                .onKeyPress(.escape) {
-                    dismissChat()
-                    return .handled
-                }
-                .onChange(of: viewModel.draft) { _, newValue in
-                    if !newValue.isEmpty { viewModel.expand() }
-                }
-                .onChange(of: inputFocused) { _, focused in
-                    if focused { viewModel.expand() }
-                }
+    private var canSend: Bool {
+        let hasText = !viewModel.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return (hasText || viewModel.hasAttachment)
+            && !viewModel.isSending
+            && viewModel.pendingApproval == nil
+    }
 
-            Button {
-                Task { await viewModel.send(using: modelContext) }
-            } label: {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 28))
-                    .foregroundStyle(
-                        viewModel.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isSending
-                        ? ChatTheme.secondaryText.opacity(0.45)
-                        : ChatTheme.accent
-                    )
+    private var inputBar: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let image = viewModel.attachedImage {
+                attachmentPreview(image)
             }
-            .buttonStyle(.plain)
-            .disabled(viewModel.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isSending)
-            .help("发送")
+
+            HStack(alignment: .center, spacing: 10) {
+                voiceButton
+
+                TextField("", text: $viewModel.draft, axis: .vertical)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 14))
+                    .foregroundStyle(ChatTheme.primaryText)
+                    .lineLimit(1...5)
+                    .focused($inputFocused)
+                    .disabled(viewModel.pendingApproval != nil)
+                    .onSubmit {
+                        Task { await viewModel.send(using: modelContext) }
+                    }
+                    .onKeyPress(.escape) {
+                        dismissChat()
+                        return .handled
+                    }
+                    // Paste an image (e.g. a screenshot) straight into the input.
+                    // Text paste is unaffected: this only fires when the clipboard holds an image.
+                    .onPasteCommand(of: [.image]) { providers in
+                        loadPastedImage(from: providers)
+                    }
+                    .onChange(of: viewModel.draft) { _, newValue in
+                        if !newValue.isEmpty { viewModel.expand() }
+                    }
+                    .onChange(of: inputFocused) { _, focused in
+                        if focused { viewModel.expand() }
+                    }
+
+                Button {
+                    Task { await viewModel.send(using: modelContext) }
+                } label: {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.system(size: 28))
+                        .foregroundStyle(canSend ? ChatTheme.accent : ChatTheme.secondaryText.opacity(0.45))
+                }
+                .buttonStyle(.hoverCue)
+                .disabled(!canSend)
+                .help("发送")
+            }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
-        // Don't put onTapGesture on the whole bar — it blocks select / copy / paste in the field.
+        // Tap anywhere on the bar to focus. Put it on the background layer so it
+        // doesn't swallow select / copy / paste inside the field or button taps.
+        .background(
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture { inputFocused = true }
+        )
+    }
+
+    private var voiceButton: some View {
+        Button {
+            viewModel.startVoiceInput()
+        } label: {
+            LangbridgeLogoView(size: 22)
+        }
+        .buttonStyle(.hoverCue)
+        .disabled(viewModel.pendingApproval != nil)
+        .help("语音输入（模型待定）")
+    }
+
+    private func attachmentPreview(_ image: NSImage) -> some View {
+        HStack(spacing: 8) {
+            Image(nsImage: image)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: 44, height: 44)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(ChatTheme.stroke, lineWidth: 1)
+                )
+
+            Text("已附带图片")
+                .font(.caption)
+                .foregroundStyle(ChatTheme.secondaryText)
+
+            Spacer(minLength: 4)
+
+            Button {
+                viewModel.clearAttachment()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 15))
+                    .foregroundStyle(ChatTheme.secondaryText)
+            }
+            .buttonStyle(.hoverCue)
+            .help("移除图片")
+        }
+        .padding(.leading, 2)
+    }
+
+    private func loadPastedImage(from providers: [NSItemProvider]) {
+        guard let provider = providers.first(where: { $0.canLoadObject(ofClass: NSImage.self) }) else { return }
+        _ = provider.loadObject(ofClass: NSImage.self) { object, _ in
+            guard let image = object as? NSImage else { return }
+            DispatchQueue.main.async {
+                viewModel.attachImage(image)
+                inputFocused = true
+            }
+        }
     }
 }
 
