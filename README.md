@@ -10,7 +10,26 @@ The repo is the macOS app under `interview-tracker-swiftui/`.
 
 ---
 
-## Requirements
+## Download & install (recommended)
+
+No clone or Xcode installation is required:
+
+1. Open [GitHub Releases](https://github.com/chen-zhuofu/Interview-tracking/releases/latest)
+2. Download `InterviewTracker-<version>-macos-universal.dmg`
+3. Open the DMG and drag `InterviewTracker` to `Applications`
+4. Launch it from Applications
+
+The installer supports both Apple Silicon and Intel Macs. The current community build is ad-hoc signed. If macOS blocks the first launch, try opening the app once, then use **System Settings → Privacy & Security → Open Anyway**.
+
+> A maintainer can publish an installer from **Actions → Release macOS app → Run workflow** by entering a version, or by pushing a tag such as `v1.0.0`.
+
+---
+
+## Run from source
+
+A clone is source code, not a ready-to-open app. Building it requires Xcode.
+
+### Requirements
 
 - macOS 14 (Sonoma) or later
 - [Xcode](https://developer.apple.com/xcode/) 15+ (provides the `swift` CLI)
@@ -20,7 +39,7 @@ The repo is the macOS app under `interview-tracker-swiftui/`.
 
 ---
 
-## 1. Clone
+### 1. Clone
 
 ```bash
 git clone https://github.com/chen-zhuofu/Interview-tracking.git
@@ -29,17 +48,17 @@ cd Interview-tracking/interview-tracker-swiftui
 
 ---
 
-## 2. Build & run
+### 2. Build & run
 
-### Option A: Desktop app (recommended)
+#### Option A: Build a local installer
 
 ```bash
-./pack-app.sh
+./pack-app.sh 1.0.0
 ```
 
-This creates `InterviewTracker.app` on your Desktop. Double-click to open.
+This creates a universal DMG, a ZIP, and checksums under `dist/`. Open the DMG and drag the app to Applications.
 
-### Option B: Dev / debug
+#### Option B: Dev / debug
 
 ```bash
 swift run
@@ -55,7 +74,7 @@ You can also double-click `Run.command` (`swift build` + launch debug binary).
 
 ---
 
-## 3. First-time setup
+## First-time setup
 
 1. Open the app  
 2. Open **Settings** (gear) → paste your **DeepSeek API Key**  
@@ -71,7 +90,7 @@ They are not committed to git.
 
 ---
 
-## 4. How to use
+## How to use
 
 Type natural language in the bottom chat, for example:
 
@@ -97,7 +116,7 @@ To persist a preference for the agent, say **remember** or **remember feedback**
 
 ---
 
-## 5. Where data lives
+## Where data lives
 
 All local, nothing uploaded:
 
@@ -107,7 +126,7 @@ All local, nothing uploaded:
 
 ---
 
-## 6. Troubleshooting
+## Troubleshooting
 
 **`swift: command not found`**  
 Install Xcode, then:
@@ -117,18 +136,15 @@ xcode-select --install
 sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 ```
 
-**App won’t open / “damaged”**  
-The pack script clears quarantine; if needed:
+**The downloaded app is blocked on first launch**
 
-```bash
-xattr -cr ~/Desktop/InterviewTracker.app
-```
+The Release package has not yet been notarized with an Apple Developer ID. Try opening it once, then use **System Settings → Privacy & Security → Open Anyway**.
 
-**Update the Desktop icon after code changes**
+**Rebuild after code changes**
 
 ```bash
 cd interview-tracker-swiftui
-./pack-app.sh
+./pack-app.sh 1.0.0
 ```
 
 **Release builds feel slow**  

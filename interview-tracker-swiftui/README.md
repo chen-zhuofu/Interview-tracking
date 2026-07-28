@@ -5,7 +5,17 @@ Track job applications in natural language. The DeepSeek agent reads/writes comp
 **UI language defaults to English.** Switch to 中文 in **Settings**.  
 中文版说明：[README.zh-CN.md](README.zh-CN.md) · 仓库根目录：[../README.md](../README.md) / [../README.zh-CN.md](../README.zh-CN.md)
 
-## Requirements
+## Install
+
+End users do not need to clone the repository or install Xcode. Open [GitHub Releases](https://github.com/chen-zhuofu/Interview-tracking/releases/latest), download the universal DMG, then drag the app to Applications.
+
+The current community build is ad-hoc signed. If macOS blocks the first launch, try opening it once, then use **System Settings → Privacy & Security → Open Anyway**.
+
+## Build from source
+
+A clone contains source code and must be compiled with Xcode.
+
+### Requirements
 
 - macOS 14 (Sonoma) or later
 - Xcode 15+ (`swift` CLI)
@@ -13,24 +23,24 @@ Track job applications in natural language. The DeepSeek agent reads/writes comp
 - (Optional) Gemini API key — chat images
 - (Optional) Google OAuth — Calendar sync
 
-## Clone into this folder
+### Clone into this folder
 
 ```bash
 git clone https://github.com/chen-zhuofu/Interview-tracking.git
 cd Interview-tracking/interview-tracker-swiftui
 ```
 
-## Build
+### Build
 
-### Pack to Desktop (daily use)
+#### Build a local DMG / ZIP
 
 ```bash
-./pack-app.sh
+./pack-app.sh 1.0.0
 ```
 
-Creates `InterviewTracker.app` on the Desktop.
+Creates a universal DMG, ZIP, and checksums under `dist/`.
 
-### Debug
+#### Debug
 
 ```bash
 swift run

@@ -6,7 +6,17 @@
 
 从仓库根目录 clone 后的完整步骤见：[仓库根中文 README](../README.zh-CN.md)。英文：[README.md](README.md) · [../README.md](../README.md)。
 
-## 系统要求
+## 直接安装
+
+普通用户无需 clone 或 Xcode。前往 [GitHub Releases](https://github.com/chen-zhuofu/Interview-tracking/releases/latest)，下载通用版 DMG，打开后把 App 拖入「应用程序」。
+
+当前社区构建使用 ad-hoc 签名。首次打开若被 macOS 拦截，请尝试打开一次，再到 **系统设置 → 隐私与安全性 → 仍要打开**。
+
+## 从源码构建
+
+Clone 得到的是源码，需要 Xcode 编译后才能运行。
+
+### 系统要求
 
 - macOS 14 (Sonoma) 或更高
 - Xcode 15+（提供 `swift` 命令行）
@@ -14,24 +24,24 @@
 - （可选）Gemini API Key — 聊天发图
 - （可选）Google OAuth — Calendar 同步
 
-## Clone 后进入本目录
+### Clone 后进入本目录
 
 ```bash
 git clone https://github.com/chen-zhuofu/Interview-tracking.git
 cd Interview-tracking/interview-tracker-swiftui
 ```
 
-## Build
+### Build
 
-### 打包到桌面（推荐日常使用）
+#### 生成本地 DMG / ZIP
 
 ```bash
-./pack-app.sh
+./pack-app.sh 1.0.0
 ```
 
-桌面会出现 `InterviewTracker.app`，双击打开。
+成品位于 `dist/`。双击 DMG，把 `InterviewTracker` 拖到「应用程序」。
 
-### 开发调试
+#### 开发调试
 
 ```bash
 swift run

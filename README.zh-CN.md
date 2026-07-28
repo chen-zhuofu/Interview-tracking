@@ -10,7 +10,26 @@ English README: [README.md](README.md)
 
 ---
 
-## 系统要求
+## 直接下载安装（推荐）
+
+不需要 clone，也不需要安装 Xcode：
+
+1. 打开 [GitHub Releases](https://github.com/chen-zhuofu/Interview-tracking/releases/latest)
+2. 下载 `InterviewTracker-版本号-macos-universal.dmg`
+3. 双击 DMG，把 `InterviewTracker` 拖到 `Applications`
+4. 从「应用程序」打开
+
+安装包同时支持 Apple Silicon 和 Intel Mac。当前社区构建使用 ad-hoc 签名；首次打开时如果 macOS 拦截，请先尝试打开一次，再到 **系统设置 → 隐私与安全性 → 仍要打开**。
+
+> Releases 页面需要先发布一个版本才会出现安装包。维护者可在 GitHub 的 **Actions → Release macOS app → Run workflow** 输入版本号发布，或推送 `v1.0.0` 形式的 tag 自动发布。
+
+---
+
+## 从源码运行
+
+Clone 后不能直接双击使用，需要先安装 Xcode 并编译。
+
+### 系统要求
 
 - macOS 14（Sonoma）或更高
 - [Xcode](https://developer.apple.com/xcode/) 15+（装好后命令行会有 `swift`）
@@ -20,7 +39,7 @@ English README: [README.md](README.md)
 
 ---
 
-## 1. Clone
+### 1. Clone
 
 ```bash
 git clone https://github.com/chen-zhuofu/Interview-tracking.git
@@ -29,17 +48,23 @@ cd Interview-tracking/interview-tracker-swiftui
 
 ---
 
-## 2. Build 并运行
+### 2. Build 并运行
 
-### 方式 A：打成桌面 App（推荐）
+#### 方式 A：生成本地安装包
 
 ```bash
-./pack-app.sh
+./pack-app.sh 1.0.0
 ```
 
-完成后桌面会出现 `InterviewTracker.app`，双击打开。
+完成后 `dist/` 会出现：
 
-### 方式 B：开发调试
+- `InterviewTracker-1.0.0-macos-universal.dmg`
+- `InterviewTracker-1.0.0-macos-universal.zip`
+- `SHA256SUMS.txt`
+
+双击 DMG，把 App 拖到「应用程序」。
+
+#### 方式 B：开发调试
 
 ```bash
 swift run
@@ -55,7 +80,7 @@ open Package.swift   # 用 Xcode 打开后 ⌘R
 
 ---
 
-## 3. 首次设置
+## 首次设置
 
 1. 打开 App
 2. 点设置（齿轮），填入 **DeepSeek API Key**
@@ -70,7 +95,7 @@ Key 只存在本机：
 
 ---
 
-## 4. 怎么用
+## 怎么用
 
 底部聊天框直接说自然语言，例如：
 
@@ -98,7 +123,7 @@ Key 只存在本机：
 
 ---
 
-## 5. 数据在哪
+## 数据在哪
 
 全部在本地，不上传：
 
@@ -108,7 +133,7 @@ Key 只存在本机：
 
 ---
 
-## 6. 常见问题
+## 常见问题
 
 **`swift: command not found`**  
 先装 Xcode，再执行一次：
@@ -118,19 +143,19 @@ xcode-select --install
 sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 ```
 
-**打不开 / 提示损坏**  
-打包脚本会清 quarantine；若仍有问题：
+**下载的 App 首次打不开**
 
-```bash
-xattr -cr ~/Desktop/InterviewTracker.app
-```
+这是因为 Release 安装包还没有 Apple Developer ID 公证。先尝试打开一次，再到：
 
-**改完代码怎么更新桌面图标**  
+`系统设置 → 隐私与安全性 → 仍要打开`
+
+**改完代码怎么重新打包**
+
 再跑一次：
 
 ```bash
 cd interview-tracker-swiftui
-./pack-app.sh
+./pack-app.sh 1.0.0
 ```
 
 **Release 打包很慢**  

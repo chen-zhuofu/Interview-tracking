@@ -98,7 +98,7 @@ struct DeepSpaceBackground: View {
 
     // MARK: - Static data
 
-    private static let backdrop: NSImage? = Bundle.module
+    private static let backdrop: NSImage? = AppResourceBundle.bundle
         .url(forResource: "DeepSpace", withExtension: "png")
         .flatMap { NSImage(contentsOf: $0) }
 

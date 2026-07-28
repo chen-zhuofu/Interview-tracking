@@ -25,7 +25,7 @@ struct LangbridgeLogoView: View {
 
     private static let cachedImage: NSImage? = {
         let names = [("Langbridge_Graph", "png"), ("Langbridge_Graph", "svg")]
-        let bundles = [Bundle.module, Bundle.main]
+        let bundles = [AppResourceBundle.bundle, Bundle.main]
         for (name, ext) in names {
             for bundle in bundles {
                 if let url = bundle.url(forResource: name, withExtension: ext),
